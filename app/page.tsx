@@ -20,7 +20,7 @@ const DEFAULT_SETUP: SetupInput = {
   roundsPerStation: 3,
   stations: 6,
   spotifyPlaylistUri: "",
-  workVolume: 85,
+  workVolume: 100,
   restVolume: 45,
   cueVolume: 100,
 };
