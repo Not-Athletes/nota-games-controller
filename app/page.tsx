@@ -383,34 +383,26 @@ export default function Home() {
       return;
     }
 
-    const url = spotifyService.getAuthUrl();
-    if (!url) {
-      refreshSpotifyStatus(
-        "Missing NEXT_PUBLIC_SPOTIFY_CLIENT_ID or NEXT_PUBLIC_SPOTIFY_REDIRECT_URI."
-      );
-      return;
-    }
-
-    window.location.href = url;
+    window.location.href = "/api/auth/spotify";
   }, [refreshSpotifyStatus]);
 
   const handleDisconnectSpotify = useCallback(() => {
+    void fetch("/api/auth/spotify/logout", { method: "POST" });
     spotifyService.clearToken();
     refreshSpotifyStatus();
   }, [refreshSpotifyStatus]);
 
   useEffect(() => {
-    spotifyService.initializeFromStorage();
-    const consumedFromHash = spotifyService.consumeTokenFromUrlHash();
     queueMicrotask(() => {
       refreshSpotifyStatus();
     });
 
-    if (consumedFromHash || spotifyService.getStatus().authenticated) {
+    void spotifyService.bootstrapAuthFromSession().then((hasSession) => {
+      if (!hasSession) return;
       void spotifyService.connectPlayer().then((result) => {
         refreshSpotifyStatus(result.ok ? undefined : result.error);
       });
-    }
+    });
 
     return () => clearTicker();
   }, [clearTicker, refreshSpotifyStatus]);

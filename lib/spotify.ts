@@ -1,11 +1,4 @@
 const SPOTIFY_API = "https://api.spotify.com/v1";
-const SPOTIFY_SCOPES = [
-  "streaming",
-  "user-read-email",
-  "user-read-private",
-  "user-read-playback-state",
-  "user-modify-playback-state",
-].join(" ");
 
 declare global {
   interface Window {
@@ -83,6 +76,25 @@ export class SpotifyService {
   private player?: SpotifyPlayer;
   private deviceId?: string;
 
+  private async hydrateTokenFromServer() {
+    const response = await fetch("/api/auth/spotify/token");
+    if (!response.ok) {
+      this.token = undefined;
+      this.deviceId = undefined;
+      return false;
+    }
+
+    const data = (await response.json()) as { accessToken?: string };
+    if (!data.accessToken) {
+      this.token = undefined;
+      this.deviceId = undefined;
+      return false;
+    }
+
+    this.token = data.accessToken;
+    return true;
+  }
+
   getStatus(): SpotifyStatus {
     return {
       connected: Boolean(this.token),
@@ -92,47 +104,8 @@ export class SpotifyService {
     };
   }
 
-  getAuthUrl() {
-    const clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID;
-    const redirectUri = process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI;
-    if (!clientId || !redirectUri) {
-      return null;
-    }
-
-    const params = new URLSearchParams({
-      client_id: clientId,
-      response_type: "token",
-      redirect_uri: redirectUri,
-      scope: SPOTIFY_SCOPES,
-      show_dialog: "true",
-    });
-
-    return `https://accounts.spotify.com/authorize?${params.toString()}`;
-  }
-
-  initializeFromStorage() {
-    if (typeof window === "undefined") return;
-    const stored = localStorage.getItem("spotify_access_token");
-    if (stored) {
-      this.token = stored;
-    }
-  }
-
-  consumeTokenFromUrlHash() {
-    if (typeof window === "undefined") return false;
-    if (!window.location.hash.includes("access_token")) {
-      return false;
-    }
-
-    const hash = new URLSearchParams(window.location.hash.slice(1));
-    const accessToken = hash.get("access_token");
-
-    if (!accessToken) return false;
-    this.token = accessToken;
-    localStorage.setItem("spotify_access_token", accessToken);
-
-    history.replaceState({}, document.title, window.location.pathname);
-    return true;
+  async bootstrapAuthFromSession() {
+    return this.hydrateTokenFromServer();
   }
 
   clearToken() {
@@ -140,9 +113,6 @@ export class SpotifyService {
     this.deviceId = undefined;
     this.player?.disconnect();
     this.player = undefined;
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("spotify_access_token");
-    }
   }
 
   private async request(
@@ -150,7 +120,10 @@ export class SpotifyService {
     options: RequestInit = {},
     query?: Record<string, string>
   ) {
-    if (!this.token) return false;
+    if (!this.token) {
+      const hydrated = await this.hydrateTokenFromServer();
+      if (!hydrated || !this.token) return false;
+    }
     const params = new URLSearchParams(query);
     const url = `${SPOTIFY_API}${endpoint}${params.size ? `?${params}` : ""}`;
 
@@ -164,6 +137,20 @@ export class SpotifyService {
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        const hydrated = await this.hydrateTokenFromServer();
+        if (hydrated && this.token) {
+          const retry = await fetch(url, {
+            ...options,
+            headers: {
+              Authorization: `Bearer ${this.token}`,
+              "Content-Type": "application/json",
+              ...(options.headers || {}),
+            },
+          });
+          return retry.ok;
+        }
+      }
       return false;
     }
 
@@ -171,6 +158,13 @@ export class SpotifyService {
   }
 
   async connectPlayer() {
+    if (!this.token) {
+      const hydrated = await this.hydrateTokenFromServer();
+      if (!hydrated || !this.token) {
+        return { ok: false, error: "No Spotify session found." };
+      }
+    }
+
     if (!this.token) {
       return { ok: false, error: "No Spotify token found." };
     }

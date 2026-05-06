@@ -9,7 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "cookie": "^1.1.1",
+    "jose": "^6.2.3",
     "next": "16.2.4",
+    "passport": "^0.7.0",
+    "passport-spotify": "^2.0.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "zod": "^4.4.3"
@@ -17,6 +21,8 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/passport": "^1.0.17",
+    "@types/passport-spotify": "^2.0.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
