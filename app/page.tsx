@@ -42,6 +42,7 @@ const TIMED_PHASES: Phase[] = ["get_ready", "work", "rest", "rotate"];
 const AUTO_NEXT_THRESHOLD_MS = 7000;
 const NOW_PLAYING_POLL_MS = 1000;
 const INTRO_PRESTART_MS = 800;
+const REST_AIR_HORN_OVERLAY_MS = 800;
 
 export default function Home() {
   const [setupValues, setSetupValues] = useState<SetupInput>(() => {
@@ -186,7 +187,14 @@ export default function Home() {
       }
 
       if (current.phase === "work") {
-        audioCuesRef.current.play("rest");
+        void audioCuesRef.current.playAndTriggerNearEnd(
+          "rest",
+          REST_AIR_HORN_OVERLAY_MS,
+          () => {
+            setSpotifyVolume(config.workVolume);
+            audioCuesRef.current.play("airHorn");
+          }
+        );
         setSpotifyVolume(config.restVolume);
         commitPhase(
           "rest",
@@ -201,8 +209,6 @@ export default function Home() {
         if (current.currentRound < config.roundsPerStation) {
           audioCuesRef.current.stop("rest");
           audioCuesRef.current.play("nextRound");
-          setSpotifyVolume(config.workVolume);
-          audioCuesRef.current.play("airHorn");
           commitPhase(
             "work",
             current.currentStation,
@@ -285,6 +291,7 @@ export default function Home() {
           "intro",
           INTRO_PRESTART_MS,
           async () => {
+            audioCuesRef.current.play("airHorn");
             if (config.spotifyPlaylistUri) {
               await spotifyService.playPlaylist(config.spotifyPlaylistUri);
             }
