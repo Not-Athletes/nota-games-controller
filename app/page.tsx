@@ -271,20 +271,6 @@ export default function Home() {
       audioCuesRef.current.stopAll();
 
       const totalIntervals = getTotalIntervals(config);
-      const getReadySeconds = getPhaseDuration("get_ready", config);
-
-      updateSessionState(() => ({
-        phase: "get_ready",
-        currentStation: 1,
-        currentRound: 1,
-        timeRemaining: getReadySeconds,
-        isRunning: false,
-        isPaused: false,
-        completedIntervals: 0,
-        totalIntervals,
-        startedAtMs: undefined,
-        endedAtMs: undefined,
-      }));
 
       if (spotifyStatus.playerReady) {
         await audioCuesRef.current.playAndTriggerNearEnd(
@@ -302,11 +288,17 @@ export default function Home() {
         await audioCuesRef.current.playAndWait("intro");
       }
 
-      phaseEndTimeRef.current = Date.now() + getReadySeconds * 1000;
-      updateSessionState((prev) => ({
-        ...prev,
+      const firstWorkSeconds = getPhaseDuration("work", config);
+      phaseEndTimeRef.current = Date.now() + firstWorkSeconds * 1000;
+      updateSessionState(() => ({
+        phase: "work",
+        currentStation: 1,
+        currentRound: 1,
+        timeRemaining: firstWorkSeconds,
         isRunning: true,
         isPaused: false,
+        completedIntervals: 0,
+        totalIntervals,
         startedAtMs: Date.now(),
         endedAtMs: undefined,
       }));
