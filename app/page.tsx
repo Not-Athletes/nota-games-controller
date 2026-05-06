@@ -137,6 +137,7 @@ export default function Home() {
     }));
 
     audioCuesRef.current.setCueVolume(config.cueVolume);
+    audioCuesRef.current.stop("rest");
     void audioCuesRef.current.play("sessionComplete");
 
   }, [clearTicker, updateSessionState]);
@@ -177,6 +178,7 @@ export default function Home() {
       };
 
       if (current.phase === "get_ready") {
+        audioCuesRef.current.stop("rest");
         audioCuesRef.current.play("workStart");
         setSpotifyVolume(config.workVolume);
         commitPhase("work", 1, 1, completedIntervals);
@@ -197,9 +199,10 @@ export default function Home() {
 
       if (current.phase === "rest") {
         if (current.currentRound < config.roundsPerStation) {
+          audioCuesRef.current.stop("rest");
           audioCuesRef.current.play("nextRound");
-          audioCuesRef.current.play("workStart");
           setSpotifyVolume(config.workVolume);
+          audioCuesRef.current.play("airHorn");
           commitPhase(
             "work",
             current.currentStation,
@@ -226,6 +229,7 @@ export default function Home() {
       }
 
       if (current.phase === "rotate") {
+        audioCuesRef.current.stop("rest");
         audioCuesRef.current.play("workStart");
         setSpotifyVolume(config.workVolume);
         commitPhase("work", current.currentStation + 1, 1, completedIntervals);
@@ -258,6 +262,7 @@ export default function Home() {
     async (config: SessionConfig) => {
       setSessionConfig(config);
       audioCuesRef.current.setCueVolume(config.cueVolume);
+      audioCuesRef.current.stopAll();
 
       const totalIntervals = getTotalIntervals(config);
       const getReadySeconds = getPhaseDuration("get_ready", config);

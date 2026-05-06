@@ -1,6 +1,7 @@
 type CueName =
   | "intro"
   | "startSession"
+  | "airHorn"
   | "workStart"
   | "rest"
   | "rotateStations"
@@ -10,6 +11,7 @@ type CueName =
 const CUE_PATHS: Record<CueName, string> = {
   intro: "/audio/intro_audio.mp3",
   startSession: "/audio/start-session.mp3",
+  airHorn: "/audio/air_horn.mp3",
   workStart: "/audio/work-start.mp3",
   rest: "/audio/rest_audio.mp3",
   rotateStations: "/audio/rotate-stations.mp3",
@@ -19,9 +21,24 @@ const CUE_PATHS: Record<CueName, string> = {
 
 export class AudioCues {
   private cueVolume = 100;
+  private activeCues = new Map<CueName, HTMLAudioElement>();
 
   setCueVolume(volume: number) {
     this.cueVolume = Math.min(100, Math.max(0, volume));
+  }
+
+  stop(cue: CueName) {
+    const active = this.activeCues.get(cue);
+    if (!active) return;
+    active.pause();
+    active.currentTime = 0;
+    this.activeCues.delete(cue);
+  }
+
+  stopAll() {
+    for (const cue of this.activeCues.keys()) {
+      this.stop(cue);
+    }
   }
 
   async play(cue: CueName) {
@@ -40,8 +57,10 @@ export class AudioCues {
     if (typeof window === "undefined") return;
 
     try {
+      this.stop(cue);
       const audio = new Audio(CUE_PATHS[cue]);
       audio.volume = this.cueVolume / 100;
+      this.activeCues.set(cue, audio);
       await audio.play();
 
       let triggered = false;
@@ -63,6 +82,9 @@ export class AudioCues {
         const onDone = () => {
           triggerNearEnd();
           audio.removeEventListener("timeupdate", onTimeUpdate);
+          if (this.activeCues.get(cue) === audio) {
+            this.activeCues.delete(cue);
+          }
           resolve();
         };
 
