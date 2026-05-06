@@ -41,6 +41,7 @@ const INITIAL_STATE: SessionState = {
 const TIMED_PHASES: Phase[] = ["get_ready", "work", "rest", "rotate"];
 const REST_ROTATE_VOLUME = 35;
 const AUTO_NEXT_THRESHOLD_MS = 4000;
+const INTRO_PRESTART_MS = 800;
 
 export default function Home() {
   const [setupValues, setSetupValues] = useState<SetupInput>(() => {
@@ -270,18 +271,21 @@ export default function Home() {
         endedAtMs: undefined,
       }));
 
-      const introPlayback = audioCuesRef.current.playAndWait("intro");
-
       startTicker();
 
       if (spotifyStatus.playerReady) {
-        await introPlayback;
-        if (config.spotifyPlaylistUri) {
-          await spotifyService.playPlaylist(config.spotifyPlaylistUri);
-        }
-        setSpotifyVolume(config.workVolume);
+        await audioCuesRef.current.playAndTriggerNearEnd(
+          "intro",
+          INTRO_PRESTART_MS,
+          async () => {
+            if (config.spotifyPlaylistUri) {
+              await spotifyService.playPlaylist(config.spotifyPlaylistUri);
+            }
+            setSpotifyVolume(config.workVolume);
+          }
+        );
       } else {
-        void introPlayback;
+        void audioCuesRef.current.playAndWait("intro");
       }
     },
     [setSpotifyVolume, spotifyStatus.playerReady, startTicker, updateSessionState]

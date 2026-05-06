@@ -29,15 +29,46 @@ export class AudioCues {
   }
 
   async playAndWait(cue: CueName) {
+    return this.playAndTriggerNearEnd(cue, 0);
+  }
+
+  async playAndTriggerNearEnd(
+    cue: CueName,
+    nearEndMs: number,
+    onNearEnd?: () => void | Promise<void>
+  ) {
     if (typeof window === "undefined") return;
 
     try {
       const audio = new Audio(CUE_PATHS[cue]);
       audio.volume = this.cueVolume / 100;
       await audio.play();
+
+      let triggered = false;
+      const triggerNearEnd = () => {
+        if (triggered) return;
+        triggered = true;
+        void onNearEnd?.();
+      };
+
       await new Promise<void>((resolve) => {
-        audio.addEventListener("ended", () => resolve(), { once: true });
-        audio.addEventListener("error", () => resolve(), { once: true });
+        const onTimeUpdate = () => {
+          if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+          const remainingMs = audio.duration * 1000 - audio.currentTime * 1000;
+          if (remainingMs <= nearEndMs) {
+            triggerNearEnd();
+          }
+        };
+
+        const onDone = () => {
+          triggerNearEnd();
+          audio.removeEventListener("timeupdate", onTimeUpdate);
+          resolve();
+        };
+
+        audio.addEventListener("timeupdate", onTimeUpdate);
+        audio.addEventListener("ended", onDone, { once: true });
+        audio.addEventListener("error", onDone, { once: true });
       });
     } catch (error) {
       console.warn("Failed to play cue", cue, error);
