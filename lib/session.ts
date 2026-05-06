@@ -1,6 +1,6 @@
 import type { Phase, SessionConfig } from "@/types/session";
 
-export const GET_READY_SECONDS = 5;
+export const GET_READY_SECONDS = 10;
 export const ROTATE_SECONDS = 5;
 
 export function adjustRestTime(baseRestTime: number, attendees: number) {
