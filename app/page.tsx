@@ -261,22 +261,19 @@ export default function Home() {
 
       const totalIntervals = getTotalIntervals(config);
       const getReadySeconds = getPhaseDuration("get_ready", config);
-      phaseEndTimeRef.current = Date.now() + getReadySeconds * 1000;
 
       updateSessionState(() => ({
         phase: "get_ready",
         currentStation: 1,
         currentRound: 1,
         timeRemaining: getReadySeconds,
-        isRunning: true,
+        isRunning: false,
         isPaused: false,
         completedIntervals: 0,
         totalIntervals,
-        startedAtMs: Date.now(),
+        startedAtMs: undefined,
         endedAtMs: undefined,
       }));
-
-      startTicker();
 
       if (spotifyStatus.playerReady) {
         await audioCuesRef.current.playAndTriggerNearEnd(
@@ -290,8 +287,18 @@ export default function Home() {
           }
         );
       } else {
-        void audioCuesRef.current.playAndWait("intro");
+        await audioCuesRef.current.playAndWait("intro");
       }
+
+      phaseEndTimeRef.current = Date.now() + getReadySeconds * 1000;
+      updateSessionState((prev) => ({
+        ...prev,
+        isRunning: true,
+        isPaused: false,
+        startedAtMs: Date.now(),
+        endedAtMs: undefined,
+      }));
+      startTicker();
     },
     [setSpotifyVolume, spotifyStatus.playerReady, startTicker, updateSessionState]
   );
