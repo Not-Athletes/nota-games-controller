@@ -186,6 +186,14 @@ export default function Home() {
       }
 
       if (current.phase === "work") {
+        const isFinalWorkInterval =
+          current.currentStation === config.stations &&
+          current.currentRound === config.roundsPerStation;
+        if (isFinalWorkInterval) {
+          markComplete();
+          return;
+        }
+
         audioCuesRef.current.play("rest");
         setSpotifyVolume(config.restVolume);
         commitPhase(

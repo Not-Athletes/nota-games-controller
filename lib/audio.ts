@@ -16,7 +16,7 @@ const CUE_PATHS: Record<CueName, string> = {
   rest: "/audio/rest_audio.mp3",
   rotateStations: "/audio/rotate-stations.mp3",
   nextRound: "/audio/next-round.mp3",
-  sessionComplete: "/audio/session-complete.mp3",
+  sessionComplete: "/audio/outro_audio.mp3",
 };
 
 export class AudioCues {
