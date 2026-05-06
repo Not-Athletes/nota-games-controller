@@ -40,7 +40,8 @@ const INITIAL_STATE: SessionState = {
 
 const TIMED_PHASES: Phase[] = ["get_ready", "work", "rest", "rotate"];
 const REST_ROTATE_VOLUME = 35;
-const AUTO_NEXT_THRESHOLD_MS = 4000;
+const AUTO_NEXT_THRESHOLD_MS = 7000;
+const NOW_PLAYING_POLL_MS = 1000;
 const INTRO_PRESTART_MS = 800;
 
 export default function Home() {
@@ -387,7 +388,7 @@ export default function Home() {
     void pollNowPlaying();
     const nowPlayingInterval = setInterval(() => {
       void pollNowPlaying();
-    }, 5000);
+    }, NOW_PLAYING_POLL_MS);
 
     return () => {
       cancelled = true;
