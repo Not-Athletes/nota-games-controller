@@ -40,6 +40,7 @@ const INITIAL_STATE: SessionState = {
 
 const TIMED_PHASES: Phase[] = ["get_ready", "work", "rest", "rotate"];
 const REST_ROTATE_VOLUME = 35;
+const AUTO_NEXT_THRESHOLD_MS = 4000;
 
 export default function Home() {
   const [setupValues, setSetupValues] = useState<SetupInput>(() => {
@@ -71,6 +72,7 @@ export default function Home() {
   const advancingRef = useRef(false);
   const sessionStateRef = useRef(sessionState);
   const sessionConfigRef = useRef<SessionConfig | null>(sessionConfig);
+  const autoNextHandledTrackRef = useRef<string | null>(null);
 
   useEffect(() => {
     sessionStateRef.current = sessionState;
@@ -268,16 +270,19 @@ export default function Home() {
         endedAtMs: undefined,
       }));
 
-      void audioCuesRef.current.play("startSession");
+      const introPlayback = audioCuesRef.current.playAndWait("intro");
+
+      startTicker();
 
       if (spotifyStatus.playerReady) {
+        await introPlayback;
         if (config.spotifyPlaylistUri) {
           await spotifyService.playPlaylist(config.spotifyPlaylistUri);
         }
         setSpotifyVolume(config.workVolume);
+      } else {
+        void introPlayback;
       }
-
-      startTicker();
     },
     [setSpotifyVolume, spotifyStatus.playerReady, startTicker, updateSessionState]
   );
@@ -345,6 +350,7 @@ export default function Home() {
       queueMicrotask(() => {
         setNowPlaying(null);
       });
+      autoNextHandledTrackRef.current = null;
       return;
     }
 
@@ -353,6 +359,25 @@ export default function Home() {
       const track = await spotifyService.fetchNowPlaying();
       if (cancelled) return;
       setNowPlaying(track);
+
+      if (!track?.isPlaying || !track.durationMs || track.progressMs === undefined) {
+        return;
+      }
+
+      const trackKey = `${track.trackName}::${track.artistName}::${track.durationMs}`;
+      if (autoNextHandledTrackRef.current !== trackKey) {
+        autoNextHandledTrackRef.current = null;
+      }
+
+      const remainingMs = track.durationMs - track.progressMs;
+      if (
+        remainingMs > 0 &&
+        remainingMs <= AUTO_NEXT_THRESHOLD_MS &&
+        autoNextHandledTrackRef.current !== trackKey
+      ) {
+        autoNextHandledTrackRef.current = trackKey;
+        void spotifyService.nextTrack(spotifyStatus.deviceId);
+      }
     };
 
     void pollNowPlaying();
@@ -368,6 +393,7 @@ export default function Home() {
     sessionState.phase,
     sessionState.isRunning,
     spotifyStatus.authenticated,
+    spotifyStatus.deviceId,
     spotifyStatus.playerReady,
   ]);
 

@@ -1,4 +1,5 @@
 type CueName =
+  | "intro"
   | "startSession"
   | "workStart"
   | "rest"
@@ -7,6 +8,7 @@ type CueName =
   | "sessionComplete";
 
 const CUE_PATHS: Record<CueName, string> = {
+  intro: "/audio/intro_audio.mp3",
   startSession: "/audio/start-session.mp3",
   workStart: "/audio/work-start.mp3",
   rest: "/audio/rest_audio.mp3",
@@ -23,12 +25,20 @@ export class AudioCues {
   }
 
   async play(cue: CueName) {
+    void this.playAndWait(cue);
+  }
+
+  async playAndWait(cue: CueName) {
     if (typeof window === "undefined") return;
 
     try {
       const audio = new Audio(CUE_PATHS[cue]);
       audio.volume = this.cueVolume / 100;
       await audio.play();
+      await new Promise<void>((resolve) => {
+        audio.addEventListener("ended", () => resolve(), { once: true });
+        audio.addEventListener("error", () => resolve(), { once: true });
+      });
     } catch (error) {
       console.warn("Failed to play cue", cue, error);
     }

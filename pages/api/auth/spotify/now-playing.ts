@@ -8,6 +8,8 @@ type NowPlayingResponse = {
   albumName: string;
   albumArtUrl?: string;
   isPlaying: boolean;
+  durationMs?: number;
+  progressMs?: number;
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -37,8 +39,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const payload = (await response.json()) as {
     is_playing?: boolean;
+    progress_ms?: number;
     item?: {
       name?: string;
+      duration_ms?: number;
       artists?: Array<{ name?: string }>;
       album?: {
         name?: string;
@@ -59,6 +63,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     albumName: payload.item.album?.name ?? "Unknown album",
     albumArtUrl: payload.item.album?.images?.[0]?.url,
     isPlaying: Boolean(payload.is_playing),
+    durationMs: payload.item.duration_ms,
+    progressMs: payload.progress_ms,
   };
 
   return res.status(200).json({ nowPlaying });

@@ -33,6 +33,8 @@ export type SpotifyNowPlaying = {
   albumName: string;
   albumArtUrl?: string;
   isPlaying: boolean;
+  durationMs?: number;
+  progressMs?: number;
 };
 
 function normalizePlaylistUri(input?: string) {
@@ -227,6 +229,14 @@ export class SpotifyService {
         body: JSON.stringify({ context_uri: playlistUri }),
       },
       { device_id: this.deviceId }
+    );
+  }
+
+  async nextTrack(deviceId?: string) {
+    return this.request(
+      "/me/player/next",
+      { method: "POST" },
+      deviceId ? { device_id: deviceId } : undefined
     );
   }
 
