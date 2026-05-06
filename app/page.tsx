@@ -39,6 +39,7 @@ const INITIAL_STATE: SessionState = {
 };
 
 const TIMED_PHASES: Phase[] = ["get_ready", "work", "rest", "rotate"];
+const REST_ROTATE_VOLUME = 35;
 
 export default function Home() {
   const [setupValues, setSetupValues] = useState<SetupInput>(() => {
@@ -176,7 +177,7 @@ export default function Home() {
 
       if (current.phase === "work") {
         audioCuesRef.current.play("rest");
-        setSpotifyVolume(config.restVolume);
+        setSpotifyVolume(REST_ROTATE_VOLUME);
         commitPhase(
           "rest",
           current.currentStation,
@@ -202,7 +203,7 @@ export default function Home() {
 
         if (current.currentStation < config.stations) {
           audioCuesRef.current.play("rotateStations");
-          setSpotifyVolume(config.restVolume);
+          setSpotifyVolume(REST_ROTATE_VOLUME);
           commitPhase(
             "rotate",
             current.currentStation,

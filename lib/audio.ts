@@ -9,7 +9,7 @@ type CueName =
 const CUE_PATHS: Record<CueName, string> = {
   startSession: "/audio/start-session.mp3",
   workStart: "/audio/work-start.mp3",
-  rest: "/audio/rest%20audio.mp3",
+  rest: "/audio/rest_audio.mp3",
   rotateStations: "/audio/rotate-stations.mp3",
   nextRound: "/audio/next-round.mp3",
   sessionComplete: "/audio/session-complete.mp3",
