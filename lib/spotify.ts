@@ -230,8 +230,18 @@ export class SpotifyService {
     );
   }
 
-  async pause() {
-    return this.request("/me/player/pause", { method: "PUT" });
+  async pause(deviceId?: string) {
+    return this.request(
+      "/me/player/pause",
+      { method: "PUT" },
+      deviceId ? { device_id: deviceId } : undefined
+    );
+  }
+
+  async stopPlayback() {
+    const targetedPause = this.deviceId ? await this.pause(this.deviceId) : false;
+    const genericPause = await this.pause();
+    return targetedPause || genericPause;
   }
 
   async setVolume(volume: number) {

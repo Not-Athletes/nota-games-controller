@@ -129,7 +129,7 @@ export default function Home() {
     audioCuesRef.current.setCueVolume(config.cueVolume);
     void audioCuesRef.current.play("sessionComplete");
 
-    void spotifyService.pause();
+    void spotifyService.stopPlayback();
   }, [clearTicker, updateSessionState]);
 
   const advancePhase = useCallback(() => {
