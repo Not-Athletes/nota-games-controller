@@ -6,7 +6,11 @@ import { SetupForm } from "@/components/SetupForm";
 import { SpotifyConnect } from "@/components/SpotifyConnect";
 import { AudioCues } from "@/lib/audio";
 import { getPhaseDuration, getTotalIntervals } from "@/lib/session";
-import { spotifyService, type SpotifyStatus } from "@/lib/spotify";
+import {
+  spotifyService,
+  type SpotifyNowPlaying,
+  type SpotifyStatus,
+} from "@/lib/spotify";
 import type { Phase, SessionConfig, SessionState, SetupInput } from "@/types/session";
 
 const DEFAULT_SETUP: SetupInput = {
@@ -56,14 +60,12 @@ export default function Home() {
     authenticated: false,
     playerReady: false,
   });
-  const [spotifyWarning, setSpotifyWarning] = useState<string>();
+  const [nowPlaying, setNowPlaying] = useState<SpotifyNowPlaying | null>(null);
   const [musicVolumeTarget, setMusicVolumeTarget] = useState(DEFAULT_SETUP.workVolume);
 
   const audioCuesRef = useRef(new AudioCues());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const phaseEndTimeRef = useRef<number | null>(null);
-  const pausedPhaseRef = useRef<Phase>("idle");
-  const pausedRemainingRef = useRef(0);
   const advancingRef = useRef(false);
   const sessionStateRef = useRef(sessionState);
   const sessionConfigRef = useRef<SessionConfig | null>(sessionConfig);
@@ -245,7 +247,6 @@ export default function Home() {
   const startSession = useCallback(
     async (config: SessionConfig) => {
       setSessionConfig(config);
-      setSpotifyWarning(undefined);
       audioCuesRef.current.setCueVolume(config.cueVolume);
 
       const totalIntervals = getTotalIntervals(config);
@@ -270,10 +271,6 @@ export default function Home() {
           await spotifyService.playPlaylist(config.spotifyPlaylistUri);
         }
         setSpotifyVolume(config.workVolume);
-      } else {
-        setSpotifyWarning(
-          "Spotify not connected. Timer will run without music control."
-        );
       }
 
       startTicker();
@@ -281,98 +278,9 @@ export default function Home() {
     [setSpotifyVolume, spotifyStatus.playerReady, startTicker, updateSessionState]
   );
 
-  const pauseSession = useCallback(() => {
-    const current = sessionStateRef.current;
-    if (!current.isRunning || current.phase === "paused" || current.phase === "complete") {
-      return;
-    }
-
-    pausedPhaseRef.current = current.phase;
-    pausedRemainingRef.current = current.timeRemaining;
-    clearTicker();
-    phaseEndTimeRef.current = null;
-
-    updateSessionState((prev) => ({
-      ...prev,
-      phase: "paused",
-      isPaused: true,
-      isRunning: false,
-    }));
-  }, [clearTicker, updateSessionState]);
-
-  const resumeSession = useCallback(() => {
-    const config = sessionConfigRef.current;
-    if (!config) return;
-    const phaseToResume = pausedPhaseRef.current;
-    if (!TIMED_PHASES.includes(phaseToResume)) return;
-
-    const remaining = Math.max(1, pausedRemainingRef.current || 1);
-    phaseEndTimeRef.current = Date.now() + remaining * 1000;
-    updateSessionState((prev) => ({
-      ...prev,
-      phase: phaseToResume,
-      isPaused: false,
-      isRunning: true,
-      timeRemaining: remaining,
-    }));
-    startTicker();
-  }, [startTicker, updateSessionState]);
-
-  const restartCurrentPhase = useCallback(() => {
-    const config = sessionConfigRef.current;
-    if (!config) return;
-    const current = sessionStateRef.current;
-    const phase = current.phase === "paused" ? pausedPhaseRef.current : current.phase;
-    if (!TIMED_PHASES.includes(phase)) return;
-
-    const duration = getPhaseDuration(phase, config);
-    phaseEndTimeRef.current = Date.now() + duration * 1000;
-    updateSessionState((prev) => ({
-      ...prev,
-      phase,
-      isPaused: false,
-      isRunning: true,
-      timeRemaining: duration,
-    }));
-
-    if (phase === "work") {
-      void audioCuesRef.current.play("workStart");
-      setSpotifyVolume(config.workVolume);
-    } else if (phase === "rest") {
-      void audioCuesRef.current.play("rest");
-      setSpotifyVolume(config.restVolume);
-    } else if (phase === "rotate") {
-      void audioCuesRef.current.play("rotateStations");
-      setSpotifyVolume(config.restVolume);
-    }
-
-    startTicker();
-  }, [setSpotifyVolume, startTicker, updateSessionState]);
-
-  const skipPhase = useCallback(() => {
-    const current = sessionStateRef.current;
-    if (current.phase === "paused") {
-      updateSessionState((prev) => ({
-        ...prev,
-        phase: pausedPhaseRef.current,
-        isPaused: false,
-        isRunning: true,
-      }));
-    }
-    advancePhase();
-  }, [advancePhase, updateSessionState]);
-
   const endSession = useCallback(() => {
     markComplete();
   }, [markComplete]);
-
-  const manualVolumeUp = useCallback(() => {
-    setSpotifyVolume(Math.min(100, musicVolumeTarget + 5));
-  }, [musicVolumeTarget, setSpotifyVolume]);
-
-  const manualVolumeDown = useCallback(() => {
-    setSpotifyVolume(Math.max(0, musicVolumeTarget - 5));
-  }, [musicVolumeTarget, setSpotifyVolume]);
 
   const handleConnectSpotify = useCallback(() => {
     const status = spotifyService.getStatus();
@@ -389,6 +297,7 @@ export default function Home() {
   const handleDisconnectSpotify = useCallback(() => {
     void fetch("/api/auth/spotify/logout", { method: "POST" });
     spotifyService.clearToken();
+    setNowPlaying(null);
     refreshSpotifyStatus();
   }, [refreshSpotifyStatus]);
 
@@ -421,6 +330,42 @@ export default function Home() {
       window.removeEventListener("beforeunload", beforeUnload);
     };
   }, []);
+
+  useEffect(() => {
+    const isSessionActive =
+      sessionState.phase !== "idle" &&
+      sessionState.phase !== "complete" &&
+      sessionState.isRunning;
+
+    if (!isSessionActive || !spotifyStatus.authenticated) {
+      queueMicrotask(() => {
+        setNowPlaying(null);
+      });
+      return;
+    }
+
+    let cancelled = false;
+    const pollNowPlaying = async () => {
+      const track = await spotifyService.fetchNowPlaying();
+      if (cancelled) return;
+      setNowPlaying(track);
+    };
+
+    void pollNowPlaying();
+    const nowPlayingInterval = setInterval(() => {
+      void pollNowPlaying();
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(nowPlayingInterval);
+    };
+  }, [
+    sessionState.phase,
+    sessionState.isRunning,
+    spotifyStatus.authenticated,
+    spotifyStatus.playerReady,
+  ]);
 
   const setupPageContent = useMemo(
     () => (
@@ -466,14 +411,8 @@ export default function Home() {
           config={sessionConfig ?? { ...DEFAULT_SETUP, adjustedRestTime: 15 }}
           currentVolumeTarget={musicVolumeTarget}
           spotifyStatus={spotifyStatus}
-          spotifyWarning={spotifyWarning}
-          onPause={pauseSession}
-          onResume={resumeSession}
-          onSkip={skipPhase}
-          onRestartPhase={restartCurrentPhase}
+          nowPlaying={nowPlaying}
           onEndSession={endSession}
-          onVolumeUp={manualVolumeUp}
-          onVolumeDown={manualVolumeDown}
         />
       )}
     </div>

@@ -1,16 +1,7 @@
 "use client";
 
 type SessionControlsProps = {
-  canPause: boolean;
-  isPaused: boolean;
-  onPause: () => void;
-  onResume: () => void;
-  onSkip: () => void;
-  onRestartPhase: () => void;
   onEndSession: () => void;
-  onVolumeUp: () => void;
-  onVolumeDown: () => void;
-  disableVolumeButtons?: boolean;
 };
 
 function ControlButton({
@@ -40,37 +31,11 @@ function ControlButton({
 }
 
 export function SessionControls({
-  canPause,
-  isPaused,
-  onPause,
-  onResume,
-  onSkip,
-  onRestartPhase,
   onEndSession,
-  onVolumeUp,
-  onVolumeDown,
-  disableVolumeButtons,
 }: SessionControlsProps) {
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-      <ControlButton
-        label={isPaused ? "Resume Session" : "Pause Session"}
-        onClick={isPaused ? onResume : onPause}
-        disabled={!canPause && !isPaused}
-      />
-      <ControlButton label="Skip To Next Phase" onClick={onSkip} />
-      <ControlButton label="Restart Current Phase" onClick={onRestartPhase} />
+    <div className="grid grid-cols-1 gap-3">
       <ControlButton label="End Session" tone="danger" onClick={onEndSession} />
-      <ControlButton
-        label="Music Volume Up"
-        onClick={onVolumeUp}
-        disabled={disableVolumeButtons}
-      />
-      <ControlButton
-        label="Music Volume Down"
-        onClick={onVolumeDown}
-        disabled={disableVolumeButtons}
-      />
     </div>
   );
 }

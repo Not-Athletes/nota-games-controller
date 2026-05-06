@@ -27,6 +27,14 @@ export type SpotifyStatus = {
   error?: string;
 };
 
+export type SpotifyNowPlaying = {
+  trackName: string;
+  artistName: string;
+  albumName: string;
+  albumArtUrl?: string;
+  isPlaying: boolean;
+};
+
 function normalizePlaylistUri(input?: string) {
   if (!input) return undefined;
   const value = input.trim();
@@ -232,6 +240,13 @@ export class SpotifyService {
       { method: "PUT" },
       { volume_percent: String(Math.min(100, Math.max(0, Math.round(volume)))) }
     );
+  }
+
+  async fetchNowPlaying() {
+    const response = await fetch("/api/auth/spotify/now-playing");
+    if (!response.ok) return null;
+    const data = (await response.json()) as { nowPlaying?: SpotifyNowPlaying | null };
+    return data.nowPlaying ?? null;
   }
 }
 

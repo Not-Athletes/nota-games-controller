@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { SessionControls } from "@/components/SessionControls";
-import type { SpotifyStatus } from "@/lib/spotify";
+import { getTotalSessionSeconds } from "@/lib/session";
+import type { SpotifyNowPlaying, SpotifyStatus } from "@/lib/spotify";
 import type { Phase, SessionConfig, SessionState } from "@/types/session";
 
 type LiveSessionProps = {
@@ -9,14 +11,8 @@ type LiveSessionProps = {
   config: SessionConfig;
   currentVolumeTarget: number;
   spotifyStatus: SpotifyStatus;
-  spotifyWarning?: string;
-  onPause: () => void;
-  onResume: () => void;
-  onSkip: () => void;
-  onRestartPhase: () => void;
+  nowPlaying: SpotifyNowPlaying | null;
   onEndSession: () => void;
-  onVolumeUp: () => void;
-  onVolumeDown: () => void;
 };
 
 const phaseLabel: Record<Phase, string> = {
@@ -41,19 +37,19 @@ export function LiveSession({
   config,
   currentVolumeTarget,
   spotifyStatus,
-  spotifyWarning,
-  onPause,
-  onResume,
-  onSkip,
-  onRestartPhase,
+  nowPlaying,
   onEndSession,
-  onVolumeUp,
-  onVolumeDown,
 }: LiveSessionProps) {
   const progress =
     state.totalIntervals > 0
       ? Math.min(100, (state.completedIntervals / state.totalIntervals) * 100)
       : 0;
+  const isSpotifyConnected = spotifyStatus.authenticated && spotifyStatus.playerReady;
+  const spotifyIconSrc = isSpotifyConnected
+    ? "/icons/Primary_Logo_Green_RGB.svg"
+    : "/icons/Primary_Logo_Black_PMS_C.svg";
+  const timerDisplaySeconds =
+    state.phase === "complete" ? getTotalSessionSeconds(config) : state.timeRemaining;
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
@@ -68,7 +64,7 @@ export function LiveSession({
           {phaseLabel[state.phase]}
         </p>
         <p className="mt-4 text-7xl font-bold tabular-nums md:text-8xl">
-          {formatSeconds(state.timeRemaining)}
+          {formatSeconds(timerDisplaySeconds)}
         </p>
 
         <div className="mt-8 grid grid-cols-1 gap-4 text-sm text-zinc-700 md:grid-cols-3">
@@ -96,16 +92,67 @@ export function LiveSession({
         </div>
       </main>
 
-      <div className="rounded-sm border border-zinc-300 bg-white p-4 text-sm text-zinc-700">
-        <p>
-          Spotify:{" "}
-          {spotifyStatus.authenticated
-            ? spotifyStatus.playerReady
-              ? "Connected"
-              : "Authenticated but player is not ready"
-            : "Not connected"}
-        </p>
-        {spotifyWarning ? <p className="mt-1 text-amber-300">{spotifyWarning}</p> : null}
+      <div className="rounded-sm bg-white p-4 text-sm text-zinc-700">
+        <div className="flex items-center gap-3">
+          <Image
+            src={spotifyIconSrc}
+            alt="Spotify"
+            width={24}
+            height={24}
+            className="h-6 w-6"
+          />
+          <p>
+            {spotifyStatus.authenticated
+              ? spotifyStatus.playerReady
+                ? "Spotify connected"
+                : "Spotify authenticated, player still connecting"
+              : "Spotify not connected"}
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-sm bg-white p-4">
+        <div className="flex items-center gap-4">
+          <div className="h-14 w-14 overflow-hidden rounded-sm bg-zinc-100">
+            {nowPlaying?.albumArtUrl ? (
+              <Image
+                src={nowPlaying.albumArtUrl}
+                alt={`${nowPlaying.albumName} cover`}
+                width={56}
+                height={56}
+                className="h-full w-full object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-xs text-zinc-500">
+                N/A
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-zinc-900">
+              {nowPlaying?.trackName ?? "No track playing"}
+            </p>
+            <p className="truncate text-xs text-zinc-600">
+              {nowPlaying ? `${nowPlaying.artistName} - ${nowPlaying.albumName}` : "Spotify"}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 flex h-8 items-end gap-1">
+          {[8, 16, 12, 20, 10, 18, 14, 22].map((height, idx) => (
+            <div
+              key={`eq-${idx}`}
+              className={`w-1 rounded-sm ${
+                isSpotifyConnected ? "bg-[#1DB954] animate-pulse" : "bg-zinc-300"
+              }`}
+              style={{
+                height: `${height}px`,
+                animationDelay: `${idx * 120}ms`,
+              }}
+            />
+          ))}
+        </div>
       </div>
 
       {state.phase === "complete" ? (
@@ -114,18 +161,7 @@ export function LiveSession({
           <p className="mt-2 text-zinc-700">Begin cooldown manually</p>
         </div>
       ) : (
-        <SessionControls
-          canPause={state.isRunning}
-          isPaused={state.isPaused}
-          onPause={onPause}
-          onResume={onResume}
-          onSkip={onSkip}
-          onRestartPhase={onRestartPhase}
-          onEndSession={onEndSession}
-          onVolumeUp={onVolumeUp}
-          onVolumeDown={onVolumeDown}
-          disableVolumeButtons={!spotifyStatus.playerReady}
-        />
+        <SessionControls onEndSession={onEndSession} />
       )}
     </div>
   );

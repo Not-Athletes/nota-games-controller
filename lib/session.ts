@@ -48,3 +48,11 @@ export function getTotalIntervals(config: SessionConfig) {
   const rotateIntervals = Math.max(config.stations - 1, 0);
   return workAndRestIntervals + rotateIntervals;
 }
+
+export function getTotalSessionSeconds(config: SessionConfig) {
+  const getReady = GET_READY_SECONDS;
+  const workAndRest =
+    config.stations * config.roundsPerStation * (config.workTime + config.adjustedRestTime);
+  const rotate = Math.max(config.stations - 1, 0) * ROTATE_SECONDS;
+  return getReady + workAndRest + rotate;
+}
