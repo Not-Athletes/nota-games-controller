@@ -174,7 +174,7 @@ export function SetupForm({ initialValues, onStart }: SetupFormProps) {
 
       <button
         type="submit"
-        className="rounded-sm bg-white px-6 py-4 text-lg font-semibold text-black transition hover:bg-zinc-200"
+        className="rounded-sm bg-[#1DB954] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#18a449]"
       >
         Start Session
       </button>

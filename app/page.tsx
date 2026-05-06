@@ -34,6 +34,8 @@ const INITIAL_STATE: SessionState = {
   isPaused: false,
   completedIntervals: 0,
   totalIntervals: 0,
+  startedAtMs: undefined,
+  endedAtMs: undefined,
 };
 
 const TIMED_PHASES: Phase[] = ["get_ready", "work", "rest", "rotate"];
@@ -61,7 +63,6 @@ export default function Home() {
     playerReady: false,
   });
   const [nowPlaying, setNowPlaying] = useState<SpotifyNowPlaying | null>(null);
-  const [musicVolumeTarget, setMusicVolumeTarget] = useState(DEFAULT_SETUP.workVolume);
 
   const audioCuesRef = useRef(new AudioCues());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -104,7 +105,6 @@ export default function Home() {
   }, []);
 
   const setSpotifyVolume = useCallback((volume: number) => {
-    setMusicVolumeTarget(volume);
     if (spotifyService.getStatus().playerReady) {
       void spotifyService.setVolume(volume);
     }
@@ -123,6 +123,7 @@ export default function Home() {
       isPaused: false,
       timeRemaining: 0,
       completedIntervals: prev.totalIntervals,
+      endedAtMs: prev.endedAtMs ?? Date.now(),
     }));
 
     audioCuesRef.current.setCueVolume(config.cueVolume);
@@ -262,6 +263,8 @@ export default function Home() {
         isPaused: false,
         completedIntervals: 0,
         totalIntervals,
+        startedAtMs: Date.now(),
+        endedAtMs: undefined,
       }));
 
       void audioCuesRef.current.play("startSession");
@@ -409,7 +412,6 @@ export default function Home() {
         <LiveSession
           state={sessionState}
           config={sessionConfig ?? { ...DEFAULT_SETUP, adjustedRestTime: 15 }}
-          currentVolumeTarget={musicVolumeTarget}
           spotifyStatus={spotifyStatus}
           nowPlaying={nowPlaying}
           onEndSession={endSession}

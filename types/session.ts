@@ -29,6 +29,8 @@ export type SessionState = {
   isPaused: boolean;
   completedIntervals: number;
   totalIntervals: number;
+  startedAtMs?: number;
+  endedAtMs?: number;
 };
 
 export type SetupInput = {
