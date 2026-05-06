@@ -137,27 +137,6 @@ export function SetupForm({ initialValues, onStart }: SetupFormProps) {
           onChange={handleChange}
           error={errors.spotifyPlaylistUri}
         />
-        <Field
-          label="Work Volume"
-          name="workVolume"
-          value={formValues.workVolume}
-          onChange={handleChange}
-          error={errors.workVolume}
-        />
-        <Field
-          label="Rest Volume"
-          name="restVolume"
-          value={formValues.restVolume}
-          onChange={handleChange}
-          error={errors.restVolume}
-        />
-        <Field
-          label="Cue Volume"
-          name="cueVolume"
-          value={formValues.cueVolume}
-          onChange={handleChange}
-          error={errors.cueVolume}
-        />
       </div>
 
       <div className="rounded-sm border border-zinc-300 bg-white p-4">

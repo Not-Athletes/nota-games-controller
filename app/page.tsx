@@ -21,7 +21,7 @@ const DEFAULT_SETUP: SetupInput = {
   stations: 6,
   spotifyPlaylistUri: "",
   workVolume: 100,
-  restVolume: 45,
+  restVolume: 35,
   cueVolume: 100,
 };
 
@@ -39,7 +39,6 @@ const INITIAL_STATE: SessionState = {
 };
 
 const TIMED_PHASES: Phase[] = ["get_ready", "work", "rest", "rotate"];
-const REST_ROTATE_VOLUME = 35;
 const AUTO_NEXT_THRESHOLD_MS = 7000;
 const NOW_PLAYING_POLL_MS = 1000;
 const INTRO_PRESTART_MS = 800;
@@ -54,7 +53,13 @@ export default function Home() {
       const raw = localStorage.getItem("nota_class_controller_setup");
       if (!raw) return DEFAULT_SETUP;
       const stored = JSON.parse(raw) as Partial<SetupInput>;
-      return { ...DEFAULT_SETUP, ...stored };
+      return {
+        ...DEFAULT_SETUP,
+        ...stored,
+        workVolume: DEFAULT_SETUP.workVolume,
+        restVolume: DEFAULT_SETUP.restVolume,
+        cueVolume: DEFAULT_SETUP.cueVolume,
+      };
     } catch {
       return DEFAULT_SETUP;
     }
@@ -180,7 +185,7 @@ export default function Home() {
 
       if (current.phase === "work") {
         audioCuesRef.current.play("rest");
-        setSpotifyVolume(REST_ROTATE_VOLUME);
+        setSpotifyVolume(config.restVolume);
         commitPhase(
           "rest",
           current.currentStation,
@@ -206,7 +211,7 @@ export default function Home() {
 
         if (current.currentStation < config.stations) {
           audioCuesRef.current.play("rotateStations");
-          setSpotifyVolume(REST_ROTATE_VOLUME);
+          setSpotifyVolume(config.restVolume);
           commitPhase(
             "rotate",
             current.currentStation,
