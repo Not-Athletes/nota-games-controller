@@ -1,7 +1,7 @@
 import type { Phase, SessionConfig } from "@/types/session";
 
 export const GET_READY_SECONDS = 10;
-export const ROTATE_SECONDS = 5;
+export const ROTATE_SECONDS = 0;
 
 export function adjustRestTime(baseRestTime: number, attendees: number) {
   if (attendees >= 17) {
@@ -44,15 +44,12 @@ export function getPhaseDuration(phase: Phase, config: SessionConfig) {
 }
 
 export function getTotalIntervals(config: SessionConfig) {
-  const workAndRestIntervals = config.stations * config.roundsPerStation * 2;
-  const rotateIntervals = Math.max(config.stations - 1, 0);
-  return workAndRestIntervals + rotateIntervals;
+  return config.stations * config.roundsPerStation * 2;
 }
 
 export function getTotalSessionSeconds(config: SessionConfig) {
   const getReady = GET_READY_SECONDS;
   const workAndRest =
     config.stations * config.roundsPerStation * (config.workTime + config.adjustedRestTime);
-  const rotate = Math.max(config.stations - 1, 0) * ROTATE_SECONDS;
-  return getReady + workAndRest + rotate;
+  return getReady + workAndRest;
 }

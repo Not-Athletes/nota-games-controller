@@ -38,11 +38,10 @@ const INITIAL_STATE: SessionState = {
   endedAtMs: undefined,
 };
 
-const TIMED_PHASES: Phase[] = ["get_ready", "work", "rest", "rotate"];
+const TIMED_PHASES: Phase[] = ["work", "rest"];
 const AUTO_NEXT_THRESHOLD_MS = 7000;
 const NOW_PLAYING_POLL_MS = 1000;
 const INTRO_PRESTART_MS = 800;
-const REST_AIR_HORN_OVERLAY_MS = 800;
 
 export default function Home() {
   const [setupValues, setSetupValues] = useState<SetupInput>(() => {
@@ -187,14 +186,7 @@ export default function Home() {
       }
 
       if (current.phase === "work") {
-        void audioCuesRef.current.playAndTriggerNearEnd(
-          "rest",
-          REST_AIR_HORN_OVERLAY_MS,
-          () => {
-            setSpotifyVolume(config.workVolume);
-            audioCuesRef.current.play("airHorn");
-          }
-        );
+        audioCuesRef.current.play("rest");
         setSpotifyVolume(config.restVolume);
         commitPhase(
           "rest",
@@ -209,6 +201,8 @@ export default function Home() {
         if (current.currentRound < config.roundsPerStation) {
           audioCuesRef.current.stop("rest");
           audioCuesRef.current.play("nextRound");
+          setSpotifyVolume(config.workVolume);
+          audioCuesRef.current.play("airHorn");
           commitPhase(
             "work",
             current.currentStation,
@@ -219,12 +213,15 @@ export default function Home() {
         }
 
         if (current.currentStation < config.stations) {
+          audioCuesRef.current.stop("rest");
           audioCuesRef.current.play("rotateStations");
-          setSpotifyVolume(config.restVolume);
+          audioCuesRef.current.play("workStart");
+          setSpotifyVolume(config.workVolume);
+          audioCuesRef.current.play("airHorn");
           commitPhase(
-            "rotate",
-            current.currentStation,
-            current.currentRound,
+            "work",
+            current.currentStation + 1,
+            1,
             completedIntervals
           );
           return;
