@@ -57,10 +57,6 @@ export function SetupForm({ initialValues, onStart }: SetupFormProps) {
         return { ...prev, [name]: value };
       }
 
-      if (name === "pauseSpotifyAtEnd") {
-        return prev;
-      }
-
       return {
         ...prev,
         [name]: Number(value),
@@ -97,17 +93,6 @@ export function SetupForm({ initialValues, onStart }: SetupFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-      <div className="rounded-sm border border-zinc-300 bg-zinc-50 p-5 text-sm text-zinc-700">
-        <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
-          Important
-        </p>
-        <p className="mt-2">
-          Do not over-engineer this. Build the simplest working version first.
-          Prioritise reliable timer behaviour, clean state management, and
-          hands-free class flow over fancy UI.
-        </p>
-      </div>
-
       <div className="grid gap-4 md:grid-cols-2">
         <Field
           label="Attendees"
@@ -174,21 +159,6 @@ export function SetupForm({ initialValues, onStart }: SetupFormProps) {
           error={errors.cueVolume}
         />
       </div>
-
-      <label className="inline-flex items-center gap-3 text-sm text-zinc-700">
-        <input
-          type="checkbox"
-          checked={formValues.pauseSpotifyAtEnd}
-          onChange={(event) =>
-            setFormValues((prev) => ({
-              ...prev,
-              pauseSpotifyAtEnd: event.target.checked,
-            }))
-          }
-          className="h-5 w-5 rounded-sm border-zinc-300 bg-white"
-        />
-        Pause Spotify at end
-      </label>
 
       <div className="rounded-sm border border-zinc-300 bg-white p-4">
         <p className="text-zinc-700">

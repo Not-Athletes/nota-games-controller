@@ -18,7 +18,6 @@ export type SessionConfig = {
   restVolume: number;
   cueVolume: number;
   spotifyPlaylistUri?: string;
-  pauseSpotifyAtEnd: boolean;
 };
 
 export type SessionState = {
@@ -42,5 +41,4 @@ export type SetupInput = {
   workVolume: number;
   restVolume: number;
   cueVolume: number;
-  pauseSpotifyAtEnd: boolean;
 };

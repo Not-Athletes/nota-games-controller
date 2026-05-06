@@ -19,7 +19,6 @@ const DEFAULT_SETUP: SetupInput = {
   workVolume: 85,
   restVolume: 45,
   cueVolume: 100,
-  pauseSpotifyAtEnd: true,
 };
 
 const INITIAL_STATE: SessionState = {
@@ -127,12 +126,8 @@ export default function Home() {
     audioCuesRef.current.setCueVolume(config.cueVolume);
     void audioCuesRef.current.play("sessionComplete");
 
-    if (config.pauseSpotifyAtEnd) {
-      void spotifyService.pause();
-    } else {
-      setSpotifyVolume(config.restVolume);
-    }
-  }, [clearTicker, setSpotifyVolume, updateSessionState]);
+    void spotifyService.pause();
+  }, [clearTicker, updateSessionState]);
 
   const advancePhase = useCallback(() => {
     if (advancingRef.current) return;
@@ -439,7 +434,7 @@ export default function Home() {
     () => (
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
         <header className="space-y-2 text-center">
-          <h1 className="font-brand text-2xl font-semibold tracking-tight text-zinc-950 md:text-4xl">
+          <h1 className="font-brand text-lg font-bold tracking-[0.06em] text-zinc-600 md:text-xl">
             Not Athletes Games
           </h1>
         </header>

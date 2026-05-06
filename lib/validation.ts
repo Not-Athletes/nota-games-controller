@@ -14,7 +14,6 @@ export const setupSchema = z.object({
   workVolume: z.coerce.number().int().min(0).max(100),
   restVolume: z.coerce.number().int().min(0).max(100),
   cueVolume: z.coerce.number().int().min(0).max(100),
-  pauseSpotifyAtEnd: z.boolean().default(true),
 });
 
 export type SetupSchema = z.infer<typeof setupSchema>;

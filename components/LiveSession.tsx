@@ -58,8 +58,8 @@ export function LiveSession({
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
       <header className="text-center">
-        <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">
-          Nota Games Class Controller
+        <p className="font-brand text-lg font-bold tracking-[0.06em] text-zinc-600 md:text-xl">
+          Not Athletes Games
         </p>
       </header>
 
