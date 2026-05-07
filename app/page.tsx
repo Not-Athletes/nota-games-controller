@@ -138,9 +138,13 @@ export default function Home() {
 
     audioCuesRef.current.setCueVolume(config.cueVolume);
     audioCuesRef.current.stop("rest");
-    void audioCuesRef.current.play("sessionComplete");
+    setSpotifyVolume(config.restVolume);
+    void (async () => {
+      await audioCuesRef.current.playAndWait("sessionComplete");
+      setSpotifyVolume(config.workVolume);
+    })();
 
-  }, [clearTicker, updateSessionState]);
+  }, [clearTicker, setSpotifyVolume, updateSessionState]);
 
   const advancePhase = useCallback(() => {
     if (advancingRef.current) return;
