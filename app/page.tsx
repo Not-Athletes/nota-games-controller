@@ -356,12 +356,14 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const isSessionActive =
+    const shouldPollNowPlaying =
+      spotifyStatus.authenticated && sessionState.phase !== "idle";
+    const canAutoAdvanceTrack =
       sessionState.phase !== "idle" &&
       sessionState.phase !== "complete" &&
       sessionState.isRunning;
 
-    if (!isSessionActive || !spotifyStatus.authenticated) {
+    if (!shouldPollNowPlaying) {
       queueMicrotask(() => {
         setNowPlaying(null);
       });
@@ -386,6 +388,7 @@ export default function Home() {
 
       const remainingMs = track.durationMs - track.progressMs;
       if (
+        canAutoAdvanceTrack &&
         remainingMs > 0 &&
         remainingMs <= AUTO_NEXT_THRESHOLD_MS &&
         autoNextHandledTrackRef.current !== trackKey
