@@ -474,7 +474,7 @@ export default function Home() {
       ) : (
         <LiveSession
           state={sessionState}
-          config={sessionConfig ?? { ...DEFAULT_SETUP, adjustedRestTime: 15 }}
+          config={sessionConfig ?? DEFAULT_SETUP}
           spotifyStatus={spotifyStatus}
           nowPlaying={nowPlaying}
           onEndSession={endSession}

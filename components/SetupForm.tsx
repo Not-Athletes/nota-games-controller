@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { adjustRestTime } from "@/lib/session";
+import { useState } from "react";
 import { setupSchema, type SetupSchema } from "@/lib/validation";
 import type { SessionConfig, SetupInput } from "@/types/session";
 
@@ -46,11 +45,6 @@ export function SetupForm({ initialValues, onStart }: SetupFormProps) {
   const [formValues, setFormValues] = useState<SetupInput>(initialValues);
   const [errors, setErrors] = useState<ErrorMap>({});
 
-  const adjustment = useMemo(
-    () => adjustRestTime(Number(formValues.restTime), Number(formValues.attendees)),
-    [formValues.attendees, formValues.restTime]
-  );
-
   const handleChange = (name: keyof SetupInput, value: string) => {
     setFormValues((prev) => {
       if (name === "spotifyPlaylistUri") {
@@ -79,16 +73,7 @@ export function SetupForm({ initialValues, onStart }: SetupFormProps) {
     }
 
     setErrors({});
-
-    const { adjustedRestTime } = adjustRestTime(
-      parsed.data.restTime,
-      parsed.data.attendees
-    );
-
-    onStart({
-      ...parsed.data,
-      adjustedRestTime,
-    });
+    onStart(parsed.data);
   };
 
   return (
@@ -137,18 +122,6 @@ export function SetupForm({ initialValues, onStart }: SetupFormProps) {
           onChange={handleChange}
           error={errors.spotifyPlaylistUri}
         />
-      </div>
-
-      <div className="rounded-sm border border-zinc-300 bg-white p-4">
-        <p className="text-zinc-700">
-          Adjusted rest time:{" "}
-          <span className="font-semibold text-zinc-900">
-            {adjustment.adjustedRestTime} seconds
-          </span>
-        </p>
-        {adjustment.warning ? (
-          <p className="mt-1 text-sm text-amber-300">{adjustment.warning}</p>
-        ) : null}
       </div>
 
       <button

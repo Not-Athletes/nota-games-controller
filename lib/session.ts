@@ -3,31 +3,6 @@ import type { Phase, SessionConfig } from "@/types/session";
 export const GET_READY_SECONDS = 10;
 export const ROTATE_SECONDS = 0;
 
-export function adjustRestTime(baseRestTime: number, attendees: number) {
-  if (attendees >= 17) {
-    return {
-      adjustedRestTime: baseRestTime + 10,
-      warning: "Consider splitting into waves",
-    };
-  }
-
-  if (attendees >= 15) {
-    return {
-      adjustedRestTime: baseRestTime + 5,
-    };
-  }
-
-  if (attendees >= 13) {
-    return {
-      adjustedRestTime: baseRestTime + 3,
-    };
-  }
-
-  return {
-    adjustedRestTime: baseRestTime,
-  };
-}
-
 export function getPhaseDuration(phase: Phase, config: SessionConfig) {
   switch (phase) {
     case "get_ready":
@@ -35,7 +10,7 @@ export function getPhaseDuration(phase: Phase, config: SessionConfig) {
     case "work":
       return config.workTime;
     case "rest":
-      return config.adjustedRestTime;
+      return config.restTime;
     case "rotate":
       return ROTATE_SECONDS;
     default:
@@ -50,6 +25,6 @@ export function getTotalIntervals(config: SessionConfig) {
 export function getTotalSessionSeconds(config: SessionConfig) {
   const getReady = GET_READY_SECONDS;
   const workAndRest =
-    config.stations * config.roundsPerStation * (config.workTime + config.adjustedRestTime);
+    config.stations * config.roundsPerStation * (config.workTime + config.restTime);
   return getReady + workAndRest;
 }

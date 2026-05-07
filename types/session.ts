@@ -11,7 +11,6 @@ export type SessionConfig = {
   attendees: number;
   workTime: number;
   restTime: number;
-  adjustedRestTime: number;
   roundsPerStation: number;
   stations: number;
   workVolume: number;
