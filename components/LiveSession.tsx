@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { SessionControls } from "@/components/SessionControls";
-import { getTotalSessionSeconds } from "@/lib/session";
 import type { SpotifyNowPlaying, SpotifyStatus } from "@/lib/spotify";
 import type { Phase, SessionConfig, SessionState } from "@/types/session";
 
@@ -71,17 +70,10 @@ export function LiveSession({
   const spotifyIconSrc = isSpotifyConnected
     ? "/icons/Primary_Logo_Green_RGB.svg"
     : "/icons/Primary_Logo_Black_PMS_C.svg";
-  const measuredElapsedSeconds =
-    state.startedAtMs && state.endedAtMs
-      ? Math.max(0, Math.floor((state.endedAtMs - state.startedAtMs) / 1000))
-      : null;
   const currentElapsedSeconds = state.startedAtMs
     ? Math.max(0, Math.floor(((state.endedAtMs ?? nowMs) - state.startedAtMs) / 1000))
     : 0;
-  const timerDisplaySeconds =
-    state.phase === "complete"
-      ? measuredElapsedSeconds ?? getTotalSessionSeconds(config)
-      : state.timeRemaining;
+  const timerDisplaySeconds = state.phase === "complete" ? 0 : state.timeRemaining;
   const phaseDisplay = phaseLabel[state.phase];
 
   return (
