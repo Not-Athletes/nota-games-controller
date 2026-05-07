@@ -1,7 +1,6 @@
 import type { Phase, SessionConfig } from "@/types/session";
 
 export const GET_READY_SECONDS = 10;
-export const ROTATE_SECONDS = 0;
 
 export function getPhaseDuration(phase: Phase, config: SessionConfig) {
   switch (phase) {
@@ -11,8 +10,6 @@ export function getPhaseDuration(phase: Phase, config: SessionConfig) {
       return config.workTime;
     case "rest":
       return config.restTime;
-    case "rotate":
-      return ROTATE_SECONDS;
     default:
       return 0;
   }

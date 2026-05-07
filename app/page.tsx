@@ -137,7 +137,6 @@ export default function Home() {
     }));
 
     audioCuesRef.current.setCueVolume(config.cueVolume);
-    audioCuesRef.current.stop("rest");
     setSpotifyVolume(config.restVolume);
     void audioCuesRef.current.play("sessionComplete");
 
@@ -179,7 +178,6 @@ export default function Home() {
       };
 
       if (current.phase === "get_ready") {
-        audioCuesRef.current.stop("rest");
         audioCuesRef.current.play("workStart");
         setSpotifyVolume(config.workVolume);
         commitPhase("work", 1, 1, completedIntervals);
@@ -208,7 +206,6 @@ export default function Home() {
 
       if (current.phase === "rest") {
         if (current.currentRound < config.roundsPerStation) {
-          audioCuesRef.current.stop("rest");
           audioCuesRef.current.play("nextRound");
           setSpotifyVolume(config.workVolume);
           audioCuesRef.current.play("airHorn");
@@ -222,7 +219,6 @@ export default function Home() {
         }
 
         if (current.currentStation < config.stations) {
-          audioCuesRef.current.stop("rest");
           audioCuesRef.current.play("rotateStations");
           audioCuesRef.current.play("workStart");
           setSpotifyVolume(config.workVolume);
@@ -240,13 +236,6 @@ export default function Home() {
         return;
       }
 
-      if (current.phase === "rotate") {
-        audioCuesRef.current.stop("rest");
-        audioCuesRef.current.play("workStart");
-        setSpotifyVolume(config.workVolume);
-        commitPhase("work", current.currentStation + 1, 1, completedIntervals);
-        return;
-      }
     } finally {
       advancingRef.current = false;
     }

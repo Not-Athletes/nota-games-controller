@@ -19,7 +19,6 @@ const phaseLabel: Record<Phase, string> = {
   get_ready: "GET READY",
   work: "WORK",
   rest: "REST",
-  rotate: "ROTATE",
   complete: "",
   paused: "PAUSED",
 };

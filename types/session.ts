@@ -3,7 +3,6 @@ export type Phase =
   | "get_ready"
   | "work"
   | "rest"
-  | "rotate"
   | "complete"
   | "paused";
 
