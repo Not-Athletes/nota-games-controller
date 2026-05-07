@@ -11,9 +11,6 @@ export const setupSchema = z.object({
     .trim()
     .optional()
     .transform((value) => value || undefined),
-  workVolume: z.coerce.number().int().min(0).max(100),
-  restVolume: z.coerce.number().int().min(0).max(100),
-  cueVolume: z.coerce.number().int().min(0).max(100),
 });
 
 export type SetupSchema = z.infer<typeof setupSchema>;

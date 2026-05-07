@@ -248,17 +248,22 @@ export class SpotifyService {
     );
   }
 
-  async stopPlayback() {
-    const targetedPause = this.deviceId ? await this.pause(this.deviceId) : false;
-    const genericPause = await this.pause();
-    return targetedPause || genericPause;
-  }
-
   async setVolume(volume: number) {
     return this.request(
       "/me/player/volume",
       { method: "PUT" },
       { volume_percent: String(Math.min(100, Math.max(0, Math.round(volume)))) }
+    );
+  }
+
+  async setShuffle(enabled: boolean, deviceId?: string) {
+    const targetDeviceId = deviceId ?? this.deviceId;
+    return this.request(
+      "/me/player/shuffle",
+      { method: "PUT" },
+      targetDeviceId
+        ? { state: String(enabled), device_id: targetDeviceId }
+        : { state: String(enabled) }
     );
   }
 

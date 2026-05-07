@@ -16,11 +16,9 @@ type LiveSessionProps = {
 
 const phaseLabel: Record<Phase, string> = {
   idle: "IDLE",
-  get_ready: "GET READY",
   work: "WORK",
   rest: "REST",
   complete: "",
-  paused: "PAUSED",
 };
 
 function formatSeconds(seconds: number) {

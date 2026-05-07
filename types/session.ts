@@ -1,10 +1,8 @@
 export type Phase =
   | "idle"
-  | "get_ready"
   | "work"
   | "rest"
-  | "complete"
-  | "paused";
+  | "complete";
 
 export type SessionConfig = {
   attendees: number;
@@ -38,7 +36,4 @@ export type SetupInput = {
   roundsPerStation: number;
   stations: number;
   spotifyPlaylistUri?: string;
-  workVolume: number;
-  restVolume: number;
-  cueVolume: number;
 };

@@ -20,10 +20,10 @@ const DEFAULT_SETUP: SetupInput = {
   roundsPerStation: 3,
   stations: 6,
   spotifyPlaylistUri: "",
-  workVolume: 100,
-  restVolume: 35,
-  cueVolume: 100,
 };
+const WORK_VOLUME = 100;
+const REST_VOLUME = 35;
+const CUE_VOLUME = 100;
 
 const INITIAL_STATE: SessionState = {
   phase: "idle",
@@ -53,13 +53,7 @@ export default function Home() {
       const raw = localStorage.getItem("nota_class_controller_setup");
       if (!raw) return DEFAULT_SETUP;
       const stored = JSON.parse(raw) as Partial<SetupInput>;
-      return {
-        ...DEFAULT_SETUP,
-        ...stored,
-        workVolume: DEFAULT_SETUP.workVolume,
-        restVolume: DEFAULT_SETUP.restVolume,
-        cueVolume: DEFAULT_SETUP.cueVolume,
-      };
+      return { ...DEFAULT_SETUP, ...stored };
     } catch {
       return DEFAULT_SETUP;
     }
@@ -171,18 +165,11 @@ export default function Home() {
           currentStation: nextStation,
           currentRound: nextRound,
           timeRemaining: duration,
-          isRunning: phase !== "complete" && phase !== "idle" && phase !== "paused",
-          isPaused: phase === "paused",
+          isRunning: phase !== "complete" && phase !== "idle",
+          isPaused: false,
           completedIntervals: completed,
         }));
       };
-
-      if (current.phase === "get_ready") {
-        audioCuesRef.current.play("workStart");
-        setSpotifyVolume(config.workVolume);
-        commitPhase("work", 1, 1, completedIntervals);
-        return;
-      }
 
       if (current.phase === "work") {
         const isFinalWorkInterval =
@@ -287,6 +274,7 @@ export default function Home() {
           async () => {
             audioCuesRef.current.play("airHorn");
             if (config.spotifyPlaylistUri) {
+              await spotifyService.setShuffle(true);
               await spotifyService.playPlaylist(config.spotifyPlaylistUri);
             }
             setSpotifyVolume(config.workVolume);
@@ -306,7 +294,12 @@ export default function Home() {
       }));
       startTicker();
     },
-    [setSpotifyVolume, spotifyStatus.playerReady, startTicker, updateSessionState]
+    [
+      setSpotifyVolume,
+      spotifyStatus.playerReady,
+      startTicker,
+      updateSessionState,
+    ]
   );
 
   const endSession = useCallback(() => {
@@ -439,7 +432,12 @@ export default function Home() {
           onStart={(config) => {
             setSetupValues(config);
             localStorage.setItem("nota_class_controller_setup", JSON.stringify(config));
-            void startSession(config);
+            void startSession({
+              ...config,
+              workVolume: WORK_VOLUME,
+              restVolume: REST_VOLUME,
+              cueVolume: CUE_VOLUME,
+            });
           }}
         />
       </div>
@@ -460,7 +458,14 @@ export default function Home() {
       ) : (
         <LiveSession
           state={sessionState}
-          config={sessionConfig ?? DEFAULT_SETUP}
+          config={
+            sessionConfig ?? {
+              ...DEFAULT_SETUP,
+              workVolume: WORK_VOLUME,
+              restVolume: REST_VOLUME,
+              cueVolume: CUE_VOLUME,
+            }
+          }
           spotifyStatus={spotifyStatus}
           nowPlaying={nowPlaying}
           onEndSession={endSession}

@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { setupSchema, type SetupSchema } from "@/lib/validation";
-import type { SessionConfig, SetupInput } from "@/types/session";
+import type { SetupInput } from "@/types/session";
 
 type SetupFormProps = {
   initialValues: SetupInput;
-  onStart: (config: SessionConfig) => void;
+  onStart: (config: SetupInput) => void;
 };
 
 type ErrorMap = Partial<Record<keyof SetupSchema, string>>;
