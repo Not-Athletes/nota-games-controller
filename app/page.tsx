@@ -42,8 +42,6 @@ const TIMED_PHASES: Phase[] = ["work", "rest"];
 const AUTO_NEXT_THRESHOLD_MS = 7000;
 const NOW_PLAYING_POLL_MS = 1000;
 const INTRO_PRESTART_MS = 800;
-const VOLUME_RETRY_COUNT = 3;
-const VOLUME_RETRY_DELAY_MS = 200;
 
 export default function Home() {
   const [setupValues, setSetupValues] = useState<SetupInput>(() => {
@@ -79,7 +77,6 @@ export default function Home() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const phaseEndTimeRef = useRef<number | null>(null);
   const advancingRef = useRef(false);
-  const volumeCommandRef = useRef(0);
   const sessionStateRef = useRef(sessionState);
   const sessionConfigRef = useRef<SessionConfig | null>(sessionConfig);
   const autoNextHandledTrackRef = useRef<string | null>(null);
@@ -119,17 +116,7 @@ export default function Home() {
 
   const setSpotifyVolume = useCallback((volume: number) => {
     if (spotifyService.getStatus().playerReady) {
-      const commandId = ++volumeCommandRef.current;
-      void (async () => {
-        for (let attempt = 0; attempt < VOLUME_RETRY_COUNT; attempt += 1) {
-          if (commandId !== volumeCommandRef.current) return;
-          const ok = await spotifyService.setVolume(volume);
-          if (ok) return;
-          await new Promise<void>((resolve) => {
-            setTimeout(resolve, VOLUME_RETRY_DELAY_MS);
-          });
-        }
-      })();
+      void spotifyService.setVolume(volume);
     }
   }, []);
 
@@ -152,10 +139,7 @@ export default function Home() {
     audioCuesRef.current.setCueVolume(config.cueVolume);
     audioCuesRef.current.stop("rest");
     setSpotifyVolume(config.restVolume);
-    void (async () => {
-      await audioCuesRef.current.playAndWait("sessionComplete");
-      setSpotifyVolume(config.workVolume);
-    })();
+    void audioCuesRef.current.play("sessionComplete");
 
   }, [clearTicker, setSpotifyVolume, updateSessionState]);
 
