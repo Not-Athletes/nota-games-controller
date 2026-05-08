@@ -40,6 +40,39 @@ export class AudioCues {
     this.shuffledRestPaths = [];
   }
 
+  async waitForCueToFinish(cue: CueName) {
+    const active = this.activeCues.get(cue);
+    if (!active || active.ended) return;
+
+    await new Promise<void>((resolve) => {
+      let settled = false;
+      const finalize = () => {
+        if (settled) return;
+        settled = true;
+        active.removeEventListener("ended", onEnded);
+        active.removeEventListener("error", onError);
+        active.removeEventListener("pause", onPause);
+        resolve();
+      };
+
+      const onEnded = () => {
+        finalize();
+      };
+      const onError = () => {
+        finalize();
+      };
+      const onPause = () => {
+        if (this.activeCues.get(cue) !== active || active.currentTime === 0 || active.ended) {
+          finalize();
+        }
+      };
+
+      active.addEventListener("ended", onEnded, { once: true });
+      active.addEventListener("error", onError, { once: true });
+      active.addEventListener("pause", onPause);
+    });
+  }
+
   async refreshRestCues() {
     if (typeof window === "undefined") return;
     try {
