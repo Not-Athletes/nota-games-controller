@@ -196,8 +196,8 @@ export default function Home() {
 
         if (current.currentRound < config.roundsPerStation) {
           audioCuesRef.current.play("nextRound");
-          await audioCuesRef.current.playAndWait("airHorn");
           setSpotifyVolume(config.workVolume);
+          await audioCuesRef.current.playAndWait("airHorn");
           commitPhase(
             "work",
             current.currentStation,
@@ -210,8 +210,8 @@ export default function Home() {
         if (current.currentStation < config.stations) {
           audioCuesRef.current.play("rotateStations");
           audioCuesRef.current.play("workStart");
-          await audioCuesRef.current.playAndWait("airHorn");
           setSpotifyVolume(config.workVolume);
+          await audioCuesRef.current.playAndWait("airHorn");
           commitPhase(
             "work",
             current.currentStation + 1,
