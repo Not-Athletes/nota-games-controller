@@ -250,6 +250,8 @@ export default function Home() {
     async (config: SessionConfig) => {
       setSessionConfig(config);
       audioCuesRef.current.setCueVolume(config.cueVolume);
+      await audioCuesRef.current.refreshRestCues();
+      audioCuesRef.current.resetRestShuffle();
       audioCuesRef.current.stopAll();
 
       const totalIntervals = getTotalIntervals(config);

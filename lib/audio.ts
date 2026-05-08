@@ -13,15 +13,59 @@ const CUE_PATHS: Record<CueName, string> = {
   startSession: "/audio/start-session.mp3",
   airHorn: "/audio/air_horn.mp3",
   workStart: "/audio/work-start.mp3",
-  rest: "/audio/rest_audio.mp3",
+  rest: "/audio/rest_audio_0.mp3",
   rotateStations: "/audio/rotate-stations.mp3",
   nextRound: "/audio/next-round.mp3",
   sessionComplete: "/audio/outro_audio.mp3",
 };
 
+const DEFAULT_REST_CUE_PATHS = [CUE_PATHS.rest];
+
+const shufflePaths = (paths: string[]) => {
+  const shuffled = [...paths];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 export class AudioCues {
   private cueVolume = 100;
   private activeCues = new Map<CueName, HTMLAudioElement>();
+  private restCuePaths = DEFAULT_REST_CUE_PATHS;
+  private shuffledRestPaths: string[] = [];
+
+  resetRestShuffle() {
+    this.shuffledRestPaths = [];
+  }
+
+  async refreshRestCues() {
+    if (typeof window === "undefined") return;
+    try {
+      const response = await fetch("/api/audio/rest-cues", { cache: "no-store" });
+      if (!response.ok) return;
+      const payload = (await response.json()) as { restCues?: string[] };
+      if (!Array.isArray(payload.restCues) || payload.restCues.length === 0) return;
+      const validPaths = payload.restCues.filter((path) => typeof path === "string");
+      if (validPaths.length === 0) return;
+      this.restCuePaths = validPaths;
+      this.resetRestShuffle();
+    } catch (error) {
+      console.warn("Failed to refresh rest cues", error);
+    }
+  }
+
+  private getCuePath(cue: CueName) {
+    if (cue !== "rest" || this.restCuePaths.length === 0) {
+      return CUE_PATHS[cue];
+    }
+    if (this.shuffledRestPaths.length === 0) {
+      this.shuffledRestPaths = shufflePaths(this.restCuePaths);
+    }
+    const nextPath = this.shuffledRestPaths.shift();
+    return nextPath ?? CUE_PATHS[cue];
+  }
 
   setCueVolume(volume: number) {
     this.cueVolume = Math.min(100, Math.max(0, volume));
@@ -58,7 +102,7 @@ export class AudioCues {
 
     try {
       this.stop(cue);
-      const audio = new Audio(CUE_PATHS[cue]);
+      const audio = new Audio(this.getCuePath(cue));
       audio.volume = this.cueVolume / 100;
       this.activeCues.set(cue, audio);
       await audio.play();
