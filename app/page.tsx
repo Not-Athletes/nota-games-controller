@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import confetti from "canvas-confetti";
 import { LiveSession } from "@/components/LiveSession";
 import { SetupForm } from "@/components/SetupForm";
 import { SpotifyConnect } from "@/components/SpotifyConnect";
@@ -114,6 +115,22 @@ export default function Home() {
     }
   }, []);
 
+  const celebrateStationComplete = useCallback(() => {
+    confetti({
+      particleCount: 80,
+      spread: 70,
+      startVelocity: 45,
+      origin: { y: 0.7 },
+    });
+    confetti({
+      particleCount: 50,
+      spread: 110,
+      startVelocity: 35,
+      scalar: 0.8,
+      origin: { y: 0.7 },
+    });
+  }, []);
+
   const markComplete = useCallback(() => {
     const config = sessionConfigRef.current;
     if (!config) return;
@@ -216,6 +233,7 @@ export default function Home() {
         }
 
         if (current.currentStation < config.stations) {
+          celebrateStationComplete();
           audioCuesRef.current.play("rotateStations");
           audioCuesRef.current.play("workStart");
           setSpotifyVolume(config.workVolume);
@@ -236,7 +254,7 @@ export default function Home() {
     } finally {
       advancingRef.current = false;
     }
-  }, [markComplete, setSpotifyVolume, updateSessionState]);
+  }, [celebrateStationComplete, markComplete, setSpotifyVolume, updateSessionState]);
 
   const startTicker = useCallback(() => {
     if (intervalRef.current) return;

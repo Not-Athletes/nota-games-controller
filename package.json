@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "canvas-confetti": "^1.9.4",
     "cookie": "^1.1.1",
     "jose": "^6.2.3",
     "next": "16.2.4",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/passport": "^1.0.17",
     "@types/passport-spotify": "^2.0.4",
