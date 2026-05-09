@@ -267,7 +267,7 @@ export default function Home() {
       const millisecondsLeft = phaseEnd - Date.now();
       const nextSeconds = Math.max(0, Math.ceil(millisecondsLeft / 1000));
       const current = sessionStateRef.current;
-      if (config && current.phase === "work" && nextSeconds === 10) {
+      if (config && current.phase === "work" && nextSeconds === 15) {
         const cueKey = `${current.currentStation}-${current.currentRound}`;
         if (tenSecondsCuePlayedRef.current !== cueKey) {
           tenSecondsCuePlayedRef.current = cueKey;
