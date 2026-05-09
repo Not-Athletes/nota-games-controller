@@ -180,7 +180,12 @@ export default function Home() {
           return;
         }
 
-        audioCuesRef.current.play("rest");
+        const transitionsToNextStation =
+          current.currentRound === config.roundsPerStation &&
+          current.currentStation < config.stations;
+        audioCuesRef.current.play(
+          transitionsToNextStation ? "switchStation" : "rest"
+        );
         setSpotifyVolume(config.restVolume);
         commitPhase(
           "rest",
@@ -192,7 +197,10 @@ export default function Home() {
       }
 
       if (current.phase === "rest") {
-        await audioCuesRef.current.waitForCueToFinish("rest");
+        await Promise.all([
+          audioCuesRef.current.waitForCueToFinish("rest"),
+          audioCuesRef.current.waitForCueToFinish("switchStation"),
+        ]);
 
         if (current.currentRound < config.roundsPerStation) {
           audioCuesRef.current.play("nextRound");

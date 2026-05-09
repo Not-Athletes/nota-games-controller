@@ -4,6 +4,7 @@ type CueName =
   | "airHorn"
   | "workStart"
   | "rest"
+  | "switchStation"
   | "rotateStations"
   | "nextRound"
   | "sessionComplete";
@@ -14,6 +15,7 @@ const CUE_PATHS: Record<CueName, string> = {
   airHorn: "/audio/air_horn.mp3",
   workStart: "/audio/work-start.mp3",
   rest: "/audio/rest_audio_0.mp3",
+  switchStation: "/audio/switch_station.mp3",
   rotateStations: "/audio/rotate-stations.mp3",
   nextRound: "/audio/next-round.mp3",
   sessionComplete: "/audio/outro_audio.mp3",
