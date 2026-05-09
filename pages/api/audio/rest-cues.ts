@@ -3,7 +3,7 @@ import path from "node:path";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 const REST_AUDIO_PATTERN = /^rest_audio_(\d+)\.mp3$/;
-const DEFAULT_REST_CUE_PATH = "/audio/rest_audio_0.mp3";
+const DEFAULT_REST_CUE_PATH = "/audio/rest/rest_audio_0.mp3";
 
 type RestCuesResponse = {
   restCues: string[];
@@ -18,7 +18,7 @@ export default async function handler(
   }
 
   try {
-    const audioDirectory = path.join(process.cwd(), "public", "audio");
+    const audioDirectory = path.join(process.cwd(), "public", "audio", "rest");
     const entries = await readdir(audioDirectory, { withFileTypes: true });
 
     const restCues = entries
@@ -31,7 +31,7 @@ export default async function handler(
       })
       .filter((entry): entry is { name: string; index: number } => Boolean(entry))
       .sort((a, b) => a.index - b.index)
-      .map((entry) => `/audio/${entry.name}`);
+      .map((entry) => `/audio/rest/${entry.name}`);
 
     return res.status(200).json({
       restCues: restCues.length > 0 ? restCues : [DEFAULT_REST_CUE_PATH],

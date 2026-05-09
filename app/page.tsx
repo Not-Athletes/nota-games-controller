@@ -298,7 +298,9 @@ export default function Home() {
       setSessionConfig(config);
       audioCuesRef.current.setCueVolume(config.cueVolume);
       await audioCuesRef.current.refreshRestCues();
+      await audioCuesRef.current.refreshTenSecondsLeftCues();
       audioCuesRef.current.resetRestShuffle();
+      audioCuesRef.current.resetTenSecondsLeftShuffle();
       audioCuesRef.current.stopAll();
 
       const totalIntervals = getTotalIntervals(config);

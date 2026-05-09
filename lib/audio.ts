@@ -15,8 +15,8 @@ const CUE_PATHS: Record<CueName, string> = {
   startSession: "/audio/start-session.mp3",
   airHorn: "/audio/air_horn.mp3",
   workStart: "/audio/work-start.mp3",
-  tenSecondsLeft: "/audio/ten_seconds_left.mp3",
-  rest: "/audio/rest_audio_0.mp3",
+  tenSecondsLeft: "/audio/ten_seconds_left/ten_seconds_left_01.mp3",
+  rest: "/audio/rest/rest_audio_0.mp3",
   switchStation: "/audio/switch_station.mp3",
   rotateStations: "/audio/rotate-stations.mp3",
   nextRound: "/audio/next-round.mp3",
@@ -24,6 +24,7 @@ const CUE_PATHS: Record<CueName, string> = {
 };
 
 const DEFAULT_REST_CUE_PATHS = [CUE_PATHS.rest];
+const DEFAULT_TEN_SECONDS_LEFT_CUE_PATHS = [CUE_PATHS.tenSecondsLeft];
 
 const shufflePaths = (paths: string[]) => {
   const shuffled = [...paths];
@@ -38,10 +39,16 @@ export class AudioCues {
   private cueVolume = 100;
   private activeCues = new Map<CueName, HTMLAudioElement>();
   private restCuePaths = DEFAULT_REST_CUE_PATHS;
+  private tenSecondsLeftCuePaths = DEFAULT_TEN_SECONDS_LEFT_CUE_PATHS;
   private shuffledRestPaths: string[] = [];
+  private shuffledTenSecondsLeftPaths: string[] = [];
 
   resetRestShuffle() {
     this.shuffledRestPaths = [];
+  }
+
+  resetTenSecondsLeftShuffle() {
+    this.shuffledTenSecondsLeftPaths = [];
   }
 
   async waitForCueToFinish(cue: CueName) {
@@ -93,15 +100,48 @@ export class AudioCues {
     }
   }
 
+  async refreshTenSecondsLeftCues() {
+    if (typeof window === "undefined") return;
+    try {
+      const response = await fetch("/api/audio/ten-seconds-left-cues", { cache: "no-store" });
+      if (!response.ok) return;
+      const payload = (await response.json()) as { tenSecondsLeftCues?: string[] };
+      if (!Array.isArray(payload.tenSecondsLeftCues) || payload.tenSecondsLeftCues.length === 0) {
+        return;
+      }
+      const validPaths = payload.tenSecondsLeftCues.filter((path) => typeof path === "string");
+      if (validPaths.length === 0) return;
+      this.tenSecondsLeftCuePaths = validPaths;
+      this.resetTenSecondsLeftShuffle();
+    } catch (error) {
+      console.warn("Failed to refresh ten seconds left cues", error);
+    }
+  }
+
   private getCuePath(cue: CueName) {
-    if (cue !== "rest" || this.restCuePaths.length === 0) {
-      return CUE_PATHS[cue];
+    if (cue === "rest") {
+      if (this.restCuePaths.length === 0) {
+        return CUE_PATHS[cue];
+      }
+      if (this.shuffledRestPaths.length === 0) {
+        this.shuffledRestPaths = shufflePaths(this.restCuePaths);
+      }
+      const nextPath = this.shuffledRestPaths.shift();
+      return nextPath ?? CUE_PATHS[cue];
     }
-    if (this.shuffledRestPaths.length === 0) {
-      this.shuffledRestPaths = shufflePaths(this.restCuePaths);
+
+    if (cue === "tenSecondsLeft") {
+      if (this.tenSecondsLeftCuePaths.length === 0) {
+        return CUE_PATHS[cue];
+      }
+      if (this.shuffledTenSecondsLeftPaths.length === 0) {
+        this.shuffledTenSecondsLeftPaths = shufflePaths(this.tenSecondsLeftCuePaths);
+      }
+      const nextPath = this.shuffledTenSecondsLeftPaths.shift();
+      return nextPath ?? CUE_PATHS[cue];
     }
-    const nextPath = this.shuffledRestPaths.shift();
-    return nextPath ?? CUE_PATHS[cue];
+
+    return CUE_PATHS[cue];
   }
 
   setCueVolume(volume: number) {
