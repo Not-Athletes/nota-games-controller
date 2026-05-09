@@ -3,6 +3,7 @@ type CueName =
   | "startSession"
   | "airHorn"
   | "workStart"
+  | "tenSecondsLeft"
   | "rest"
   | "switchStation"
   | "rotateStations"
@@ -14,6 +15,7 @@ const CUE_PATHS: Record<CueName, string> = {
   startSession: "/audio/start-session.mp3",
   airHorn: "/audio/air_horn.mp3",
   workStart: "/audio/work-start.mp3",
+  tenSecondsLeft: "/audio/ten_seconds_left.mp3",
   rest: "/audio/rest_audio_0.mp3",
   switchStation: "/audio/switch_station.mp3",
   rotateStations: "/audio/rotate-stations.mp3",

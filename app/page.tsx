@@ -75,6 +75,7 @@ export default function Home() {
   const sessionStateRef = useRef(sessionState);
   const sessionConfigRef = useRef<SessionConfig | null>(sessionConfig);
   const autoNextHandledTrackRef = useRef<string | null>(null);
+  const tenSecondsCuePlayedRef = useRef<string | null>(null);
 
   useEffect(() => {
     sessionStateRef.current = sessionState;
@@ -261,9 +262,27 @@ export default function Home() {
     intervalRef.current = setInterval(() => {
       const phaseEnd = phaseEndTimeRef.current;
       if (!phaseEnd) return;
+      const config = sessionConfigRef.current;
 
       const millisecondsLeft = phaseEnd - Date.now();
       const nextSeconds = Math.max(0, Math.ceil(millisecondsLeft / 1000));
+      const current = sessionStateRef.current;
+      if (config && current.phase === "work" && nextSeconds === 10) {
+        const cueKey = `${current.currentStation}-${current.currentRound}`;
+        if (tenSecondsCuePlayedRef.current !== cueKey) {
+          tenSecondsCuePlayedRef.current = cueKey;
+          audioCuesRef.current.play("tenSecondsLeft");
+          setSpotifyVolume(config.restVolume);
+          void (async () => {
+            await audioCuesRef.current.waitForCueToFinish("tenSecondsLeft");
+            const latestState = sessionStateRef.current;
+            const latestCueKey = `${latestState.currentStation}-${latestState.currentRound}`;
+            if (latestState.phase === "work" && latestCueKey === cueKey) {
+              setSpotifyVolume(config.workVolume);
+            }
+          })();
+        }
+      }
       if (nextSeconds !== sessionStateRef.current.timeRemaining) {
         updateSessionState((prev) => ({ ...prev, timeRemaining: nextSeconds }));
       }
@@ -296,6 +315,7 @@ export default function Home() {
         startedAtMs: undefined,
         endedAtMs: undefined,
       }));
+      tenSecondsCuePlayedRef.current = null;
 
       if (spotifyStatus.playerReady) {
         await audioCuesRef.current.playAndTriggerNearEnd(
