@@ -20,6 +20,7 @@ const DEFAULT_SETUP: SetupInput = {
   restTime: 15,
   roundsPerStation: 3,
   stations: 6,
+  maxTrackPlaySeconds: 190,
   spotifyPlaylistUri: "",
 };
 const WORK_VOLUME = 100;
@@ -428,6 +429,9 @@ export default function Home() {
       const track = await spotifyService.fetchNowPlaying();
       if (cancelled) return;
       setNowPlaying(track);
+      const maxTrackPlayMs =
+        (sessionConfigRef.current?.maxTrackPlaySeconds ??
+          DEFAULT_SETUP.maxTrackPlaySeconds) * 1000;
 
       if (!track?.isPlaying || !track.durationMs || track.progressMs === undefined) {
         return;
@@ -441,8 +445,8 @@ export default function Home() {
       const remainingMs = track.durationMs - track.progressMs;
       if (
         canAutoAdvanceTrack &&
-        remainingMs > 0 &&
-        remainingMs <= AUTO_NEXT_THRESHOLD_MS &&
+        ((track.progressMs >= maxTrackPlayMs && track.durationMs > maxTrackPlayMs) ||
+          (remainingMs > 0 && remainingMs <= AUTO_NEXT_THRESHOLD_MS)) &&
         autoNextHandledTrackRef.current !== trackKey
       ) {
         autoNextHandledTrackRef.current = trackKey;

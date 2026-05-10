@@ -6,6 +6,7 @@ export const setupSchema = z.object({
   restTime: z.coerce.number().int().min(5).max(60),
   roundsPerStation: z.coerce.number().int().min(1).max(10),
   stations: z.coerce.number().int().min(1).max(12),
+  maxTrackPlaySeconds: z.coerce.number().int().min(30).max(600),
   spotifyPlaylistUri: z
     .string()
     .trim()

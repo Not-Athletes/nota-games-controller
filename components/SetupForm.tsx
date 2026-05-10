@@ -115,6 +115,13 @@ export function SetupForm({ initialValues, onStart }: SetupFormProps) {
           error={errors.stations}
         />
         <Field
+          label="Max Song Play Time (seconds)"
+          name="maxTrackPlaySeconds"
+          value={formValues.maxTrackPlaySeconds}
+          onChange={handleChange}
+          error={errors.maxTrackPlaySeconds}
+        />
+        <Field
           label="Spotify Playlist URI or URL"
           name="spotifyPlaylistUri"
           type="text"

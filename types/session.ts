@@ -10,6 +10,7 @@ export type SessionConfig = {
   restTime: number;
   roundsPerStation: number;
   stations: number;
+  maxTrackPlaySeconds: number;
   workVolume: number;
   restVolume: number;
   cueVolume: number;
@@ -35,5 +36,6 @@ export type SetupInput = {
   restTime: number;
   roundsPerStation: number;
   stations: number;
+  maxTrackPlaySeconds: number;
   spotifyPlaylistUri?: string;
 };
