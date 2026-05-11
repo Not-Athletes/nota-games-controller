@@ -12,6 +12,7 @@ type LiveSessionProps = {
   spotifyStatus: SpotifyStatus;
   nowPlaying: SpotifyNowPlaying | null;
   onEndSession: () => void;
+  onGoHome: () => void;
 };
 
 const phaseLabel: Record<Phase, string> = {
@@ -46,6 +47,7 @@ export function LiveSession({
   spotifyStatus,
   nowPlaying,
   onEndSession,
+  onGoHome,
 }: LiveSessionProps) {
   const [nowMs, setNowMs] = useState(0);
 
@@ -76,9 +78,13 @@ export function LiveSession({
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
       <header className="text-center">
-        <p className="font-brand text-lg font-bold tracking-[0.06em] text-zinc-600 md:text-xl">
+        <button
+          type="button"
+          onClick={onGoHome}
+          className="font-brand text-lg font-bold tracking-[0.06em] text-zinc-600 transition hover:text-zinc-900 md:text-xl"
+        >
           Not Athletes Games
-        </p>
+        </button>
       </header>
 
       <div className="grid grid-cols-1 gap-4 text-sm text-zinc-700 md:grid-cols-3">

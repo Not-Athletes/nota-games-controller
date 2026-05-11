@@ -18,6 +18,7 @@ function Field({
   value,
   onChange,
   error,
+  className,
 }: {
   label: string;
   name: keyof SetupInput;
@@ -25,9 +26,10 @@ function Field({
   value: string | number;
   onChange: (name: keyof SetupInput, value: string) => void;
   error?: string;
+  className?: string;
 }) {
   return (
-    <label className="flex flex-col gap-2">
+    <label className={`flex flex-col gap-2 ${className ?? ""}`}>
       <span className="text-sm text-zinc-600">{label}</span>
       <input
         name={name}
@@ -128,6 +130,7 @@ export function SetupForm({ initialValues, onStart }: SetupFormProps) {
           value={formValues.spotifyPlaylistUri ?? ""}
           onChange={handleChange}
           error={errors.spotifyPlaylistUri}
+          className="md:col-span-2"
         />
       </div>
 
