@@ -5,7 +5,6 @@ export type Phase =
   | "complete";
 
 export type SessionConfig = {
-  attendees: number;
   workTime: number;
   restTime: number;
   roundsPerStation: number;
@@ -31,7 +30,6 @@ export type SessionState = {
 };
 
 export type SetupInput = {
-  attendees: number;
   workTime: number;
   restTime: number;
   roundsPerStation: number;

@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 export const setupSchema = z.object({
-  attendees: z.coerce.number().int().min(1).max(30),
   workTime: z.coerce.number().int().min(10).max(120),
   restTime: z.coerce.number().int().min(5).max(60),
   roundsPerStation: z.coerce.number().int().min(1).max(10),

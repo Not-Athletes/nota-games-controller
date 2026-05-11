@@ -16,7 +16,6 @@ import {
 import type { Phase, SessionConfig, SessionState, SetupInput } from "@/types/session";
 
 const DEFAULT_SETUP: SetupInput = {
-  attendees: 12,
   workTime: 45,
   restTime: 15,
   roundsPerStation: 3,
@@ -56,8 +55,10 @@ export default function Home() {
     try {
       const raw = localStorage.getItem("nota_class_controller_setup");
       if (!raw) return DEFAULT_SETUP;
-      const stored = JSON.parse(raw) as Partial<SetupInput>;
-      return { ...DEFAULT_SETUP, ...stored };
+      const stored = JSON.parse(raw) as Partial<SetupInput> & { attendees?: unknown };
+      const { attendees: _legacyAttendees, ...rest } = stored;
+      void _legacyAttendees;
+      return { ...DEFAULT_SETUP, ...rest };
     } catch {
       return DEFAULT_SETUP;
     }
