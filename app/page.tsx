@@ -330,7 +330,8 @@ export default function Home() {
           async () => {
             audioCuesRef.current.play("airHorn");
             if (config.spotifyPlaylistUri) {
-              await spotifyService.setShuffle(true);
+              const deviceId = spotifyService.getStatus().deviceId;
+              await spotifyService.setShuffle(true, deviceId);
               await spotifyService.playPlaylist(config.spotifyPlaylistUri);
             }
             setSpotifyVolume(config.workVolume);

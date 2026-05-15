@@ -56,6 +56,13 @@ function normalizePlaylistUri(input?: string) {
   return value;
 }
 
+function playlistIdFromUri(playlistUri: string) {
+  const prefix = "spotify:playlist:";
+  if (!playlistUri.startsWith(prefix)) return null;
+  const id = playlistUri.slice(prefix.length);
+  return id || null;
+}
+
 async function loadSpotifySdk() {
   if (typeof window === "undefined") return false;
   if (window.Spotify?.Player) return true;
@@ -167,6 +174,39 @@ export class SpotifyService {
     return true;
   }
 
+  private async getJson<T>(endpoint: string, query?: Record<string, string>) {
+    if (!this.token) {
+      const hydrated = await this.hydrateTokenFromServer();
+      if (!hydrated || !this.token) return null;
+    }
+    const params = new URLSearchParams(query);
+    const url = `${SPOTIFY_API}${endpoint}${params.size ? `?${params}` : ""}`;
+
+    const fetchOnce = (token: string) =>
+      fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+
+    let response = await fetchOnce(this.token as string);
+    if (response.status === 401) {
+      const hydrated = await this.hydrateTokenFromServer();
+      if (hydrated && this.token) {
+        response = await fetchOnce(this.token);
+      }
+    }
+    if (!response.ok) return null;
+    return (await response.json()) as T;
+  }
+
+  private async getPlaylistTrackCount(playlistUri: string) {
+    const id = playlistIdFromUri(playlistUri);
+    if (!id) return null;
+    const data = await this.getJson<{ total?: number }>(
+      `/playlists/${id}/tracks`,
+      { fields: "total", limit: "1" }
+    );
+    const total = data?.total;
+    return typeof total === "number" && total > 0 ? total : null;
+  }
+
   async connectPlayer() {
     if (!this.token) {
       const hydrated = await this.hydrateTokenFromServer();
@@ -222,11 +262,19 @@ export class SpotifyService {
     const playlistUri = normalizePlaylistUri(playlistInput);
     if (!playlistUri) return false;
 
+    const trackCount = await this.getPlaylistTrackCount(playlistUri);
+    const body: { context_uri: string; offset?: { position: number } } = {
+      context_uri: playlistUri,
+    };
+    if (trackCount !== null) {
+      body.offset = { position: Math.floor(Math.random() * trackCount) };
+    }
+
     return this.request(
       "/me/player/play",
       {
         method: "PUT",
-        body: JSON.stringify({ context_uri: playlistUri }),
+        body: JSON.stringify(body),
       },
       { device_id: this.deviceId }
     );
