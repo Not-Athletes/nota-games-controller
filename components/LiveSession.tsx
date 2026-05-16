@@ -19,6 +19,7 @@ const phaseLabel: Record<Phase, string> = {
   idle: "IDLE",
   work: "WORK",
   rest: "REST",
+  passBreak: "PASS BREAK",
   complete: "",
 };
 
@@ -97,6 +98,14 @@ export function LiveSession({
                 </p>
               ) : null}
             </div>
+            {config.fullSessionPasses > 1 ? (
+              <p className="mb-2 text-xs text-zinc-500">
+                Pass{" "}
+                <span className="font-semibold text-zinc-800">
+                  {state.currentPass} of {config.fullSessionPasses}
+                </span>
+              </p>
+            ) : null}
             <p className="mt-auto self-start text-left font-display text-7xl font-bold tabular-nums text-zinc-900 md:text-6xl">
               {formatSeconds(timerDisplaySeconds)}
             </p>

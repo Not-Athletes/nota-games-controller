@@ -2,6 +2,7 @@ type CueName =
   | "intro"
   | "startSession"
   | "airHorn"
+  | "passTransition"
   | "workStart"
   | "tenSecondsLeft"
   | "rest"
@@ -14,6 +15,7 @@ const CUE_PATHS: Record<CueName, string> = {
   intro: "/audio/intro_audio.mp3",
   startSession: "/audio/start-session.mp3",
   airHorn: "/audio/air_horn.mp3",
+  passTransition: "/audio/pass_audio.mp3",
   workStart: "/audio/work-start.mp3",
   tenSecondsLeft: "/audio/ten_seconds_left/ten_seconds_left_01.mp3",
   rest: "/audio/rest/rest_audio_0.mp3",
@@ -185,13 +187,26 @@ export class AudioCues {
       await audio.play();
 
       let triggered = false;
+      let nearEndHook: Promise<void> = Promise.resolve();
       const triggerNearEnd = () => {
         if (triggered) return;
         triggered = true;
-        void onNearEnd?.();
+        nearEndHook = Promise.resolve(onNearEnd?.()).catch((err) => {
+          console.warn("onNearEnd failed", err);
+        });
       };
 
       await new Promise<void>((resolve) => {
+        const finish = () => {
+          void nearEndHook.finally(() => {
+            audio.removeEventListener("timeupdate", onTimeUpdate);
+            if (this.activeCues.get(cue) === audio) {
+              this.activeCues.delete(cue);
+            }
+            resolve();
+          });
+        };
+
         const onTimeUpdate = () => {
           if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
           const remainingMs = audio.duration * 1000 - audio.currentTime * 1000;
@@ -202,11 +217,7 @@ export class AudioCues {
 
         const onDone = () => {
           triggerNearEnd();
-          audio.removeEventListener("timeupdate", onTimeUpdate);
-          if (this.activeCues.get(cue) === audio) {
-            this.activeCues.delete(cue);
-          }
-          resolve();
+          finish();
         };
 
         audio.addEventListener("timeupdate", onTimeUpdate);

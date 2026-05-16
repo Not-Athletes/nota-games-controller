@@ -20,17 +20,19 @@ const DEFAULT_SETUP: SetupInput = {
   restTime: 15,
   roundsPerStation: 3,
   stations: 6,
+  fullSessionPasses: 1,
+  passBreakSeconds: 60,
   maxTrackPlaySeconds: 190,
   spotifyPlaylistUri: "",
 };
 const WORK_VOLUME = 100;
-const REST_VOLUME = 35;
-const CUE_VOLUME = 100;
+const REST_VOLUME = 25;
 
 const INITIAL_STATE: SessionState = {
   phase: "idle",
   currentStation: 1,
   currentRound: 1,
+  currentPass: 1,
   timeRemaining: 0,
   isRunning: false,
   isPaused: false,
@@ -152,7 +154,7 @@ export default function Home() {
       endedAtMs: prev.endedAtMs ?? Date.now(),
     }));
 
-    audioCuesRef.current.setCueVolume(config.cueVolume);
+    audioCuesRef.current.setCueVolume(config.workVolume);
     setSpotifyVolume(config.restVolume);
     void audioCuesRef.current.play("sessionComplete");
 
@@ -166,6 +168,26 @@ export default function Home() {
     advancingRef.current = true;
     try {
       const current = sessionStateRef.current;
+
+      if (current.phase === "passBreak") {
+        phaseEndTimeRef.current = null;
+        setSpotifyVolume(config.workVolume);
+        await audioCuesRef.current.playAndWait("airHorn");
+        const workDuration = getPhaseDuration("work", config);
+        phaseEndTimeRef.current =
+          workDuration > 0 ? Date.now() + workDuration * 1000 : null;
+        updateSessionState((prev) => ({
+          ...prev,
+          phase: "work",
+          currentStation: 1,
+          currentRound: 1,
+          timeRemaining: workDuration,
+          isRunning: true,
+          isPaused: false,
+        }));
+        return;
+      }
+
       const finishedTimedPhase = TIMED_PHASES.includes(current.phase);
       const completedIntervals = finishedTimedPhase
         ? Math.min(current.totalIntervals, current.completedIntervals + 1)
@@ -193,11 +215,53 @@ export default function Home() {
         }));
       };
 
+      const beginNextPassTransition = async (completed: number) => {
+        setSpotifyVolume(config.restVolume);
+        phaseEndTimeRef.current = null;
+        updateSessionState((prev) => ({
+          ...prev,
+          phase: "passBreak",
+          timeRemaining: 0,
+          isRunning: true,
+          isPaused: false,
+          completedIntervals: completed,
+          currentPass: prev.currentPass + 1,
+        }));
+        await audioCuesRef.current.playAndWait("passTransition");
+        const breakSec = config.passBreakSeconds;
+        if (breakSec <= 0) {
+          setSpotifyVolume(config.workVolume);
+          await audioCuesRef.current.playAndWait("airHorn");
+          const workDuration = getPhaseDuration("work", config);
+          phaseEndTimeRef.current =
+            workDuration > 0 ? Date.now() + workDuration * 1000 : null;
+          updateSessionState((prev) => ({
+            ...prev,
+            phase: "work",
+            currentStation: 1,
+            currentRound: 1,
+            timeRemaining: workDuration,
+            isRunning: true,
+            isPaused: false,
+          }));
+          return;
+        }
+        phaseEndTimeRef.current = Date.now() + breakSec * 1000;
+        updateSessionState((prev) => ({
+          ...prev,
+          timeRemaining: breakSec,
+        }));
+      };
+
       if (current.phase === "work") {
         const isFinalWorkInterval =
           current.currentStation === config.stations &&
           current.currentRound === config.roundsPerStation;
         if (isFinalWorkInterval) {
+          if (current.currentPass < config.fullSessionPasses) {
+            await beginNextPassTransition(completedIntervals);
+            return;
+          }
           markComplete();
           return;
         }
@@ -252,6 +316,11 @@ export default function Home() {
           return;
         }
 
+        if (current.currentPass < config.fullSessionPasses) {
+          await beginNextPassTransition(completedIntervals);
+          return;
+        }
+
         markComplete();
         return;
       }
@@ -272,7 +341,7 @@ export default function Home() {
       const nextSeconds = Math.max(0, Math.ceil(millisecondsLeft / 1000));
       const current = sessionStateRef.current;
       if (config && current.phase === "work" && nextSeconds === 15) {
-        const cueKey = `${current.currentStation}-${current.currentRound}`;
+        const cueKey = `${current.currentPass}-${current.currentStation}-${current.currentRound}`;
         if (tenSecondsCuePlayedRef.current !== cueKey) {
           tenSecondsCuePlayedRef.current = cueKey;
           audioCuesRef.current.play("tenSecondsLeft");
@@ -280,7 +349,7 @@ export default function Home() {
           void (async () => {
             await audioCuesRef.current.waitForCueToFinish("tenSecondsLeft");
             const latestState = sessionStateRef.current;
-            const latestCueKey = `${latestState.currentStation}-${latestState.currentRound}`;
+            const latestCueKey = `${latestState.currentPass}-${latestState.currentStation}-${latestState.currentRound}`;
             if (latestState.phase === "work" && latestCueKey === cueKey) {
               setSpotifyVolume(config.workVolume);
             }
@@ -300,7 +369,7 @@ export default function Home() {
   const startSession = useCallback(
     async (config: SessionConfig) => {
       setSessionConfig(config);
-      audioCuesRef.current.setCueVolume(config.cueVolume);
+      audioCuesRef.current.setCueVolume(config.workVolume);
       await audioCuesRef.current.refreshRestCues();
       await audioCuesRef.current.refreshTenSecondsLeftCues();
       audioCuesRef.current.resetRestShuffle();
@@ -313,6 +382,7 @@ export default function Home() {
         phase: "work",
         currentStation: 1,
         currentRound: 1,
+        currentPass: 1,
         timeRemaining: firstWorkSeconds,
         isRunning: false,
         isPaused: false,
@@ -328,7 +398,7 @@ export default function Home() {
           "intro",
           INTRO_PRESTART_MS,
           async () => {
-            audioCuesRef.current.play("airHorn");
+            await audioCuesRef.current.playAndWait("airHorn");
             if (config.spotifyPlaylistUri) {
               const deviceId = spotifyService.getStatus().deviceId;
               await spotifyService.setShuffle(true, deviceId);
@@ -339,6 +409,8 @@ export default function Home() {
         );
       } else {
         await audioCuesRef.current.playAndWait("intro");
+        await audioCuesRef.current.playAndWait("airHorn");
+        setSpotifyVolume(config.workVolume);
       }
 
       phaseEndTimeRef.current = Date.now() + firstWorkSeconds * 1000;
@@ -418,6 +490,7 @@ export default function Home() {
     const canAutoAdvanceTrack =
       sessionState.phase !== "idle" &&
       sessionState.phase !== "complete" &&
+      sessionState.phase !== "passBreak" &&
       sessionState.isRunning;
 
     if (!shouldPollNowPlaying) {
@@ -503,7 +576,6 @@ export default function Home() {
               ...config,
               workVolume: WORK_VOLUME,
               restVolume: REST_VOLUME,
-              cueVolume: CUE_VOLUME,
             });
           }}
         />
@@ -572,7 +644,6 @@ export default function Home() {
               ...DEFAULT_SETUP,
               workVolume: WORK_VOLUME,
               restVolume: REST_VOLUME,
-              cueVolume: CUE_VOLUME,
             }
           }
           spotifyStatus={spotifyStatus}

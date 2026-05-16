@@ -6,11 +6,14 @@ export function getPhaseDuration(phase: Phase, config: SessionConfig) {
       return config.workTime;
     case "rest":
       return config.restTime;
+    case "passBreak":
+      return config.passBreakSeconds;
     default:
       return 0;
   }
 }
 
 export function getTotalIntervals(config: SessionConfig) {
-  return config.stations * config.roundsPerStation * 2;
+  const perPass = config.stations * config.roundsPerStation * 2;
+  return perPass * config.fullSessionPasses;
 }
