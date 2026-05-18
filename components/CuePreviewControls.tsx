@@ -76,10 +76,6 @@ export function CuePreviewControls({ audioCuesRef, cueVolume }: CuePreviewContro
           Next station
         </button>
       </div>
-      <p className="mt-3 text-xs text-zinc-500">
-        Rest and 10-second clips are chosen at random from the same pools used in class. “Next station”
-        is the switch-station cue played when moving to the next station.
-      </p>
     </section>
   );
 }

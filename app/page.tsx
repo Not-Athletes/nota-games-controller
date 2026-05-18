@@ -21,8 +21,8 @@ const DEFAULT_SETUP: SetupInput = {
   restTime: 15,
   roundsPerStation: 3,
   stations: 6,
-  fullSessionPasses: 1,
-  passBreakSeconds: 60,
+  fullSessionPasses: 2,
+  passBreakSeconds: 30,
   maxTrackPlaySeconds: 190,
   spotifyPlaylistUri: "",
 };
