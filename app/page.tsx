@@ -5,6 +5,7 @@ import confetti from "canvas-confetti";
 import Link from "next/link";
 import { LiveSession } from "@/components/LiveSession";
 import { SetupForm } from "@/components/SetupForm";
+import { CuePreviewControls } from "@/components/CuePreviewControls";
 import { SpotifyConnect } from "@/components/SpotifyConnect";
 import { AudioCues } from "@/lib/audio";
 import { getPhaseDuration, getTotalIntervals } from "@/lib/session";
@@ -567,6 +568,8 @@ export default function Home() {
           onDisconnect={handleDisconnectSpotify}
         />
 
+        <CuePreviewControls audioCuesRef={audioCuesRef} cueVolume={WORK_VOLUME} />
+
         <SetupForm
           initialValues={setupValues}
           onStart={(config) => {
@@ -582,6 +585,7 @@ export default function Home() {
       </div>
     ),
     [
+      audioCuesRef,
       handleConnectSpotify,
       handleDisconnectSpotify,
       setEntryPoint,

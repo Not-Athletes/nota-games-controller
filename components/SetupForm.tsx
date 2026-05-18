@@ -79,7 +79,7 @@ export function SetupForm({ initialValues, onStart }: SetupFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+    <form onSubmit={handleSubmit} className="flex w-full flex-col gap-6">
       <div className="grid gap-4 md:grid-cols-2">
         <Field
           label="Work Time (seconds)"
