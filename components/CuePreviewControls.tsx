@@ -49,7 +49,7 @@ export function CuePreviewControls({ audioCuesRef, cueVolume }: CuePreviewContro
           onClick={() => preview((c) => c.playAndWait("tenSecondsLeft"))}
           className="rounded-sm border border-zinc-300 bg-zinc-50 px-4 py-2.5 text-sm font-semibold text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          10-second warning
+          10 seconds left
         </button>
         <button
           type="button"
@@ -65,7 +65,7 @@ export function CuePreviewControls({ audioCuesRef, cueVolume }: CuePreviewContro
           onClick={() => preview((c) => c.playAndWait("rest"))}
           className="rounded-sm border border-zinc-300 bg-zinc-50 px-4 py-2.5 text-sm font-semibold text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Random rest clip
+          Rest
         </button>
         <button
           type="button"
