@@ -6,8 +6,6 @@ export function getPhaseDuration(phase: Phase, config: SessionConfig) {
       return config.workTime;
     case "rest":
       return config.restTime;
-    case "passBreak":
-      return config.passBreakSeconds;
     default:
       return 0;
   }

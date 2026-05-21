@@ -12,8 +12,6 @@ export type SessionConfig = {
   stations: number;
   /** Run through all stations × rounds this many times (1 = current behavior). */
   fullSessionPasses: number;
-  /** Quiet countdown (in seconds) after pass transition audio before the next pass work starts. */
-  passBreakSeconds: number;
   maxTrackPlaySeconds: number;
   workVolume: number;
   restVolume: number;
@@ -41,7 +39,6 @@ export type SetupInput = {
   roundsPerStation: number;
   stations: number;
   fullSessionPasses: number;
-  passBreakSeconds: number;
   maxTrackPlaySeconds: number;
   spotifyPlaylistUri?: string;
 };

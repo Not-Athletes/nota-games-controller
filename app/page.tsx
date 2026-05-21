@@ -22,7 +22,6 @@ const DEFAULT_SETUP: SetupInput = {
   roundsPerStation: 3,
   stations: 6,
   fullSessionPasses: 2,
-  passBreakSeconds: 30,
   maxTrackPlaySeconds: 190,
   spotifyPlaylistUri: "",
 };
@@ -170,25 +169,6 @@ export default function Home() {
     try {
       const current = sessionStateRef.current;
 
-      if (current.phase === "passBreak") {
-        phaseEndTimeRef.current = null;
-        setSpotifyVolume(config.workVolume);
-        await audioCuesRef.current.playAndWait("airHorn");
-        const workDuration = getPhaseDuration("work", config);
-        phaseEndTimeRef.current =
-          workDuration > 0 ? Date.now() + workDuration * 1000 : null;
-        updateSessionState((prev) => ({
-          ...prev,
-          phase: "work",
-          currentStation: 1,
-          currentRound: 1,
-          timeRemaining: workDuration,
-          isRunning: true,
-          isPaused: false,
-        }));
-        return;
-      }
-
       const finishedTimedPhase = TIMED_PHASES.includes(current.phase);
       const completedIntervals = finishedTimedPhase
         ? Math.min(current.totalIntervals, current.completedIntervals + 1)
@@ -217,40 +197,24 @@ export default function Home() {
       };
 
       const beginNextPassTransition = async (completed: number) => {
+        clearTicker();
         setSpotifyVolume(config.restVolume);
         phaseEndTimeRef.current = null;
         updateSessionState((prev) => ({
           ...prev,
           phase: "passBreak",
+          currentStation: 1,
+          currentRound: 1,
           timeRemaining: 0,
-          isRunning: true,
+          isRunning: false,
           isPaused: false,
           completedIntervals: completed,
           currentPass: prev.currentPass + 1,
         }));
         await audioCuesRef.current.playAndWait("passTransition");
-        const breakSec = config.passBreakSeconds;
-        if (breakSec <= 0) {
-          setSpotifyVolume(config.workVolume);
-          await audioCuesRef.current.playAndWait("airHorn");
-          const workDuration = getPhaseDuration("work", config);
-          phaseEndTimeRef.current =
-            workDuration > 0 ? Date.now() + workDuration * 1000 : null;
-          updateSessionState((prev) => ({
-            ...prev,
-            phase: "work",
-            currentStation: 1,
-            currentRound: 1,
-            timeRemaining: workDuration,
-            isRunning: true,
-            isPaused: false,
-          }));
-          return;
-        }
-        phaseEndTimeRef.current = Date.now() + breakSec * 1000;
         updateSessionState((prev) => ({
           ...prev,
-          timeRemaining: breakSec,
+          isPaused: true,
         }));
       };
 
@@ -435,6 +399,35 @@ export default function Home() {
   const endSession = useCallback(() => {
     markComplete();
   }, [markComplete]);
+
+  const resumeNextPass = useCallback(async () => {
+    const config = sessionConfigRef.current;
+    const current = sessionStateRef.current;
+    if (!config || current.phase !== "passBreak" || !current.isPaused || advancingRef.current) {
+      return;
+    }
+
+    advancingRef.current = true;
+    try {
+      setSpotifyVolume(config.workVolume);
+      await audioCuesRef.current.playAndWait("airHorn");
+      const workDuration = getPhaseDuration("work", config);
+      phaseEndTimeRef.current =
+        workDuration > 0 ? Date.now() + workDuration * 1000 : null;
+      updateSessionState((prev) => ({
+        ...prev,
+        phase: "work",
+        currentStation: 1,
+        currentRound: 1,
+        timeRemaining: workDuration,
+        isRunning: true,
+        isPaused: false,
+      }));
+      startTicker();
+    } finally {
+      advancingRef.current = false;
+    }
+  }, [setSpotifyVolume, startTicker, updateSessionState]);
 
   const handleConnectSpotify = useCallback(() => {
     const status = spotifyService.getStatus();
@@ -653,6 +646,7 @@ export default function Home() {
           spotifyStatus={spotifyStatus}
           nowPlaying={nowPlaying}
           onEndSession={endSession}
+          onResumeNextPass={() => void resumeNextPass()}
           onGoHome={() => setEntryPoint("launcher")}
         />
       )}

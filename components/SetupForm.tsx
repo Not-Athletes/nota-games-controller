@@ -117,13 +117,6 @@ export function SetupForm({ initialValues, onStart }: SetupFormProps) {
           error={errors.fullSessionPasses}
         />
         <Field
-          label="Break after pass audio before next pass (seconds)"
-          name="passBreakSeconds"
-          value={formValues.passBreakSeconds}
-          onChange={handleChange}
-          error={errors.passBreakSeconds}
-        />
-        <Field
           label="Max Song Play Time (seconds)"
           name="maxTrackPlaySeconds"
           value={formValues.maxTrackPlaySeconds}

@@ -2,6 +2,8 @@
 
 type SessionControlsProps = {
   onEndSession: () => void;
+  onResumeNextPass?: () => void;
+  showResumeNextPass?: boolean;
 };
 
 function ControlButton({
@@ -12,7 +14,7 @@ function ControlButton({
 }: {
   label: string;
   onClick: () => void;
-  tone?: "default" | "danger";
+  tone?: "default" | "danger" | "primary";
   disabled?: boolean;
 }) {
   return (
@@ -22,7 +24,9 @@ function ControlButton({
       className={`min-h-14 rounded-sm px-4 py-3 text-sm font-semibold transition ${
         tone === "danger"
           ? "bg-red-500 text-white hover:bg-red-400"
-          : "bg-zinc-900 text-white hover:bg-zinc-800"
+          : tone === "primary"
+            ? "bg-[#1DB954] text-white hover:bg-[#18a449]"
+            : "bg-zinc-900 text-white hover:bg-zinc-800"
       } disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-500`}
     >
       {label}
@@ -32,9 +36,18 @@ function ControlButton({
 
 export function SessionControls({
   onEndSession,
+  onResumeNextPass,
+  showResumeNextPass = false,
 }: SessionControlsProps) {
   return (
     <div className="grid grid-cols-1 gap-3">
+      {showResumeNextPass && onResumeNextPass ? (
+        <ControlButton
+          label="Start Next Pass"
+          tone="primary"
+          onClick={onResumeNextPass}
+        />
+      ) : null}
       <ControlButton label="End Session" tone="danger" onClick={onEndSession} />
     </div>
   );

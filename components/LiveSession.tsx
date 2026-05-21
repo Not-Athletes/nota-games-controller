@@ -12,6 +12,7 @@ type LiveSessionProps = {
   spotifyStatus: SpotifyStatus;
   nowPlaying: SpotifyNowPlaying | null;
   onEndSession: () => void;
+  onResumeNextPass?: () => void;
   onGoHome: () => void;
 };
 
@@ -19,7 +20,7 @@ const phaseLabel: Record<Phase, string> = {
   idle: "IDLE",
   work: "WORK",
   rest: "REST",
-  passBreak: "PASS BREAK",
+  passBreak: "PAUSED",
   complete: "",
 };
 
@@ -48,6 +49,7 @@ export function LiveSession({
   spotifyStatus,
   nowPlaying,
   onEndSession,
+  onResumeNextPass,
   onGoHome,
 }: LiveSessionProps) {
   const [nowMs, setNowMs] = useState(0);
@@ -74,7 +76,9 @@ export function LiveSession({
     ? Math.max(0, Math.floor(((state.endedAtMs ?? nowMs) - state.startedAtMs) / 1000))
     : 0;
   const timerDisplaySeconds = state.phase === "complete" ? 0 : state.timeRemaining;
-  const phaseDisplay = phaseLabel[state.phase];
+  const isPassBreak = state.phase === "passBreak";
+  const isPassPaused = isPassBreak && state.isPaused;
+  const phaseDisplay = isPassBreak && !state.isPaused ? "PASS BREAK" : phaseLabel[state.phase];
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
@@ -107,7 +111,7 @@ export function LiveSession({
               </p>
             ) : null}
             <p className="mt-auto self-start text-left font-display text-7xl font-bold tabular-nums text-zinc-900 md:text-6xl">
-              {formatSeconds(timerDisplaySeconds)}
+              {isPassBreak ? "—" : formatSeconds(timerDisplaySeconds)}
             </p>
           </div>
           <div className="flex min-h-32 flex-col rounded-sm bg-zinc-50 p-5 text-left">
@@ -207,7 +211,13 @@ export function LiveSession({
           </div>
       </div>
 
-      {state.phase !== "complete" ? <SessionControls onEndSession={onEndSession} /> : null}
+      {state.phase !== "complete" ? (
+        <SessionControls
+          onEndSession={onEndSession}
+          onResumeNextPass={onResumeNextPass}
+          showResumeNextPass={isPassPaused}
+        />
+      ) : null}
     </div>
   );
 }
