@@ -45,7 +45,6 @@ const INITIAL_STATE: SessionState = {
 const TIMED_PHASES: Phase[] = ["work", "rest"];
 const AUTO_NEXT_THRESHOLD_MS = 7000;
 const NOW_PLAYING_POLL_MS = 1000;
-const INTRO_PRESTART_MS = 800;
 
 export default function Home() {
   const [entryPoint, setEntryPoint] = useState<"launcher" | "controller">("launcher");
@@ -349,43 +348,23 @@ export default function Home() {
         currentRound: 1,
         currentPass: 1,
         timeRemaining: firstWorkSeconds,
-        isRunning: false,
+        isRunning: true,
         isPaused: false,
         completedIntervals: 0,
         totalIntervals,
-        startedAtMs: undefined,
+        startedAtMs: Date.now(),
         endedAtMs: undefined,
       }));
       tenSecondsCuePlayedRef.current = null;
 
-      if (spotifyStatus.playerReady) {
-        await audioCuesRef.current.playAndTriggerNearEnd(
-          "intro",
-          INTRO_PRESTART_MS,
-          async () => {
-            await audioCuesRef.current.playAndWait("airHorn");
-            if (config.spotifyPlaylistUri) {
-              const deviceId = spotifyService.getStatus().deviceId;
-              await spotifyService.setShuffle(true, deviceId);
-              await spotifyService.playPlaylist(config.spotifyPlaylistUri);
-            }
-            setSpotifyVolume(config.workVolume);
-          }
-        );
-      } else {
-        await audioCuesRef.current.playAndWait("intro");
-        await audioCuesRef.current.playAndWait("airHorn");
-        setSpotifyVolume(config.workVolume);
+      if (spotifyStatus.playerReady && config.spotifyPlaylistUri) {
+        const deviceId = spotifyService.getStatus().deviceId;
+        await spotifyService.setShuffle(true, deviceId);
+        await spotifyService.playPlaylist(config.spotifyPlaylistUri);
       }
+      setSpotifyVolume(config.workVolume);
 
       phaseEndTimeRef.current = Date.now() + firstWorkSeconds * 1000;
-      updateSessionState((prev) => ({
-        ...prev,
-        isRunning: true,
-        isPaused: false,
-        startedAtMs: Date.now(),
-        endedAtMs: undefined,
-      }));
       startTicker();
     },
     [
