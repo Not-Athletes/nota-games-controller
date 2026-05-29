@@ -8,6 +8,8 @@ export type Phase =
 export type SessionConfig = {
   workTime: number;
   restTime: number;
+  /** Rest duration after the last round at a station, before moving to the next station. */
+  restBetweenStationsTime: number;
   roundsPerStation: number;
   stations: number;
   /** Run through all stations × rounds this many times (1 = current behavior). */
@@ -36,6 +38,7 @@ export type SessionState = {
 export type SetupInput = {
   workTime: number;
   restTime: number;
+  restBetweenStationsTime: number;
   roundsPerStation: number;
   stations: number;
   fullSessionPasses: number;

@@ -1,5 +1,9 @@
 import type { Phase, SessionConfig } from "@/types/session";
 
+export function getRestDuration(config: SessionConfig, betweenStations: boolean) {
+  return betweenStations ? config.restBetweenStationsTime : config.restTime;
+}
+
 export function getPhaseDuration(phase: Phase, config: SessionConfig) {
   switch (phase) {
     case "work":

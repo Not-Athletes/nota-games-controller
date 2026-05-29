@@ -3,6 +3,7 @@ import { z } from "zod";
 export const setupSchema = z.object({
   workTime: z.coerce.number().int().min(10).max(120),
   restTime: z.coerce.number().int().min(5).max(60),
+  restBetweenStationsTime: z.coerce.number().int().min(5).max(120),
   roundsPerStation: z.coerce.number().int().min(1).max(10),
   stations: z.coerce.number().int().min(1).max(12),
   fullSessionPasses: z.coerce.number().int().min(1).max(5),

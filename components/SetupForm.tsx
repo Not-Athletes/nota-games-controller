@@ -89,11 +89,18 @@ export function SetupForm({ initialValues, onStart }: SetupFormProps) {
           error={errors.workTime}
         />
         <Field
-          label="Rest Time (seconds)"
+          label="Rest Time Between Rounds (seconds)"
           name="restTime"
           value={formValues.restTime}
           onChange={handleChange}
           error={errors.restTime}
+        />
+        <Field
+          label="Rest Between Stations (seconds)"
+          name="restBetweenStationsTime"
+          value={formValues.restBetweenStationsTime}
+          onChange={handleChange}
+          error={errors.restBetweenStationsTime}
         />
         <Field
           label="Rounds Per Station"

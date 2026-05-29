@@ -8,7 +8,7 @@ import { SetupForm } from "@/components/SetupForm";
 import { CuePreviewControls } from "@/components/CuePreviewControls";
 import { SpotifyConnect } from "@/components/SpotifyConnect";
 import { AudioCues } from "@/lib/audio";
-import { getPhaseDuration, getTotalIntervals } from "@/lib/session";
+import { getPhaseDuration, getRestDuration, getTotalIntervals } from "@/lib/session";
 import {
   spotifyService,
   type SpotifyNowPlaying,
@@ -19,6 +19,7 @@ import type { Phase, SessionConfig, SessionState, SetupInput } from "@/types/ses
 const DEFAULT_SETUP: SetupInput = {
   workTime: 45,
   restTime: 15,
+  restBetweenStationsTime: 30,
   roundsPerStation: 3,
   stations: 6,
   fullSessionPasses: 2,
@@ -177,9 +178,11 @@ export default function Home() {
         phase: Phase,
         nextStation: number,
         nextRound: number,
-        completed: number
+        completed: number,
+        durationOverride?: number
       ) => {
-        const duration = getPhaseDuration(phase, config);
+        const duration =
+          durationOverride ?? getPhaseDuration(phase, config);
         phaseEndTimeRef.current =
           duration > 0 ? Date.now() + duration * 1000 : null;
 
@@ -241,7 +244,10 @@ export default function Home() {
           "rest",
           current.currentStation,
           current.currentRound,
-          completedIntervals
+          completedIntervals,
+          transitionsToNextStation
+            ? getRestDuration(config, true)
+            : undefined
         );
         return;
       }
