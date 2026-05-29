@@ -348,23 +348,30 @@ export default function Home() {
         currentRound: 1,
         currentPass: 1,
         timeRemaining: firstWorkSeconds,
-        isRunning: true,
+        isRunning: false,
         isPaused: false,
         completedIntervals: 0,
         totalIntervals,
-        startedAtMs: Date.now(),
+        startedAtMs: undefined,
         endedAtMs: undefined,
       }));
       tenSecondsCuePlayedRef.current = null;
 
+      setSpotifyVolume(config.workVolume);
       if (spotifyStatus.playerReady && config.spotifyPlaylistUri) {
         const deviceId = spotifyService.getStatus().deviceId;
         await spotifyService.setShuffle(true, deviceId);
         await spotifyService.playPlaylist(config.spotifyPlaylistUri);
       }
-      setSpotifyVolume(config.workVolume);
+      await audioCuesRef.current.playAndWait("airHorn");
 
       phaseEndTimeRef.current = Date.now() + firstWorkSeconds * 1000;
+      updateSessionState((prev) => ({
+        ...prev,
+        isRunning: true,
+        startedAtMs: Date.now(),
+        endedAtMs: undefined,
+      }));
       startTicker();
     },
     [
