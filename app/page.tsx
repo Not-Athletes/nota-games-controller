@@ -84,10 +84,6 @@ export default function Home() {
   const tenSecondsCuePlayedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    sessionStateRef.current = sessionState;
-  }, [sessionState]);
-
-  useEffect(() => {
     sessionConfigRef.current = sessionConfig;
   }, [sessionConfig]);
 
@@ -100,11 +96,9 @@ export default function Home() {
 
   const updateSessionState = useCallback(
     (updater: (prev: SessionState) => SessionState) => {
-      setSessionState((prev) => {
-        const next = updater(prev);
-        sessionStateRef.current = next;
-        return next;
-      });
+      const next = updater(sessionStateRef.current);
+      sessionStateRef.current = next;
+      setSessionState(next);
     },
     []
   );
@@ -138,27 +132,34 @@ export default function Home() {
     });
   }, []);
 
-  const markComplete = useCallback(() => {
-    const config = sessionConfigRef.current;
-    if (!config) return;
+  const markComplete = useCallback(
+    ({ playOutro = true }: { playOutro?: boolean } = {}) => {
+      const config = sessionConfigRef.current;
+      if (!config) return;
 
-    clearTicker();
-    phaseEndTimeRef.current = null;
-    updateSessionState((prev) => ({
-      ...prev,
-      phase: "complete",
-      isRunning: false,
-      isPaused: false,
-      timeRemaining: 0,
-      completedIntervals: prev.totalIntervals,
-      endedAtMs: prev.endedAtMs ?? Date.now(),
-    }));
+      clearTicker();
+      phaseEndTimeRef.current = null;
+      updateSessionState((prev) => ({
+        ...prev,
+        phase: "complete",
+        isRunning: false,
+        isPaused: false,
+        timeRemaining: 0,
+        completedIntervals: prev.totalIntervals,
+        endedAtMs: prev.endedAtMs ?? Date.now(),
+      }));
 
-    audioCuesRef.current.setCueVolume(config.workVolume);
-    setSpotifyVolume(config.restVolume);
-    void audioCuesRef.current.play("sessionComplete");
+      setSpotifyVolume(config.restVolume);
 
-  }, [clearTicker, setSpotifyVolume, updateSessionState]);
+      if (playOutro) {
+        audioCuesRef.current.setCueVolume(config.workVolume);
+        void audioCuesRef.current.play("sessionComplete");
+      } else {
+        audioCuesRef.current.stopAll();
+      }
+    },
+    [clearTicker, setSpotifyVolume, updateSessionState]
+  );
 
   const advancePhase = useCallback(async () => {
     if (advancingRef.current) return;
@@ -166,6 +167,9 @@ export default function Home() {
     if (!config) return;
 
     advancingRef.current = true;
+    // Stop the ticker from acting until the next phase is committed; otherwise it
+    // keeps firing against the now-past phase end time while we await audio cues.
+    phaseEndTimeRef.current = null;
     try {
       const current = sessionStateRef.current;
 
@@ -310,7 +314,13 @@ export default function Home() {
       const millisecondsLeft = phaseEnd - Date.now();
       const nextSeconds = Math.max(0, Math.ceil(millisecondsLeft / 1000));
       const current = sessionStateRef.current;
-      if (config && current.phase === "work" && nextSeconds === 15) {
+      const warningThreshold = Math.max(1, Math.min(15, config ? config.workTime - 1 : 15));
+      if (
+        config &&
+        current.phase === "work" &&
+        nextSeconds > 0 &&
+        nextSeconds <= warningThreshold
+      ) {
         const cueKey = `${current.currentPass}-${current.currentStation}-${current.currentRound}`;
         if (tenSecondsCuePlayedRef.current !== cueKey) {
           tenSecondsCuePlayedRef.current = cueKey;
@@ -389,7 +399,7 @@ export default function Home() {
   );
 
   const endSession = useCallback(() => {
-    markComplete();
+    markComplete({ playOutro: false });
   }, [markComplete]);
 
   const resumeNextPass = useCallback(async () => {

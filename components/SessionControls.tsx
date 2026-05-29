@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 type SessionControlsProps = {
   onEndSession: () => void;
   onResumeNextPass?: () => void;
@@ -39,6 +41,14 @@ export function SessionControls({
   onResumeNextPass,
   showResumeNextPass = false,
 }: SessionControlsProps) {
+  const [confirmingEnd, setConfirmingEnd] = useState(false);
+
+  useEffect(() => {
+    if (!confirmingEnd) return;
+    const timeout = setTimeout(() => setConfirmingEnd(false), 5000);
+    return () => clearTimeout(timeout);
+  }, [confirmingEnd]);
+
   return (
     <div className="grid grid-cols-1 gap-3">
       {showResumeNextPass && onResumeNextPass ? (
@@ -48,7 +58,29 @@ export function SessionControls({
           onClick={onResumeNextPass}
         />
       ) : null}
-      <ControlButton label="End Session" tone="danger" onClick={onEndSession} />
+      {confirmingEnd ? (
+        <div className="grid grid-cols-2 gap-3">
+          <ControlButton
+            label="Cancel"
+            tone="default"
+            onClick={() => setConfirmingEnd(false)}
+          />
+          <ControlButton
+            label="Confirm End"
+            tone="danger"
+            onClick={() => {
+              setConfirmingEnd(false);
+              onEndSession();
+            }}
+          />
+        </div>
+      ) : (
+        <ControlButton
+          label="End Session"
+          tone="danger"
+          onClick={() => setConfirmingEnd(true)}
+        />
+      )}
     </div>
   );
 }

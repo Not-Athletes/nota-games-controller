@@ -16,6 +16,9 @@ export function getPhaseDuration(phase: Phase, config: SessionConfig) {
 }
 
 export function getTotalIntervals(config: SessionConfig) {
-  const perPass = config.stations * config.roundsPerStation * 2;
-  return perPass * config.fullSessionPasses;
+  const worksPerPass = config.stations * config.roundsPerStation;
+  // Every work has a matching rest except the final work of each pass,
+  // which transitions straight to the next pass (or completion).
+  const restsPerPass = worksPerPass - 1;
+  return (worksPerPass + restsPerPass) * config.fullSessionPasses;
 }
