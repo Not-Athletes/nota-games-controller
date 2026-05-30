@@ -5,7 +5,6 @@ import confetti from "canvas-confetti";
 import Link from "next/link";
 import { LiveSession } from "@/components/LiveSession";
 import { SetupForm } from "@/components/SetupForm";
-import { CuePreviewControls } from "@/components/CuePreviewControls";
 import { SpotifyConnect } from "@/components/SpotifyConnect";
 import { AudioCues } from "@/lib/audio";
 import { getPhaseDuration, getRestDuration, getTotalIntervals } from "@/lib/session";
@@ -82,7 +81,6 @@ export default function Home() {
   const sessionConfigRef = useRef<SessionConfig | null>(sessionConfig);
   const autoNextHandledTrackRef = useRef<string | null>(null);
   const tenSecondsCuePlayedRef = useRef<string | null>(null);
-  const restBuzzerCueKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     sessionConfigRef.current = sessionConfig;
@@ -258,16 +256,14 @@ export default function Home() {
       }
 
       if (current.phase === "rest") {
-        audioCuesRef.current.stop("buzzer");
-        restBuzzerCueKeyRef.current = null;
         await Promise.all([
           audioCuesRef.current.waitForCueToFinish("rest"),
           audioCuesRef.current.waitForCueToFinish("switchStation"),
         ]);
 
         if (current.currentRound < config.roundsPerStation) {
-          audioCuesRef.current.play("nextRound");
           setSpotifyVolume(config.workVolume);
+          await audioCuesRef.current.playTimes("buzzer", 5);
           await audioCuesRef.current.playAndWait("airHorn");
           commitPhase(
             "work",
@@ -280,9 +276,8 @@ export default function Home() {
 
         if (current.currentStation < config.stations) {
           celebrateStationComplete();
-          audioCuesRef.current.play("rotateStations");
-          audioCuesRef.current.play("workStart");
           setSpotifyVolume(config.workVolume);
+          await audioCuesRef.current.playTimes("buzzer", 5);
           await audioCuesRef.current.playAndWait("airHorn");
           commitPhase(
             "work",
@@ -339,20 +334,6 @@ export default function Home() {
           })();
         }
       }
-      // Final 5 seconds of any rest: loop the buzzer as it counts down to the
-      // air horn that starts the next work interval.
-      if (
-        config &&
-        current.phase === "rest" &&
-        nextSeconds > 0 &&
-        nextSeconds <= 5
-      ) {
-        const buzzerKey = `${current.currentPass}-${current.currentStation}-${current.currentRound}`;
-        if (restBuzzerCueKeyRef.current !== buzzerKey) {
-          restBuzzerCueKeyRef.current = buzzerKey;
-          audioCuesRef.current.playLoop("buzzer");
-        }
-      }
       if (nextSeconds !== sessionStateRef.current.timeRemaining) {
         updateSessionState((prev) => ({ ...prev, timeRemaining: nextSeconds }));
       }
@@ -389,7 +370,6 @@ export default function Home() {
         endedAtMs: undefined,
       }));
       tenSecondsCuePlayedRef.current = null;
-      restBuzzerCueKeyRef.current = null;
 
       setSpotifyVolume(config.workVolume);
       if (spotifyStatus.playerReady && config.spotifyPlaylistUri) {
@@ -580,8 +560,6 @@ export default function Home() {
           onConnect={handleConnectSpotify}
           onDisconnect={handleDisconnectSpotify}
         />
-
-        <CuePreviewControls audioCuesRef={audioCuesRef} cueVolume={WORK_VOLUME} />
 
         <SetupForm
           initialValues={setupValues}
