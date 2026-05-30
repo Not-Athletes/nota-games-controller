@@ -170,10 +170,23 @@ export class AudioCues {
     void this.playAndWait(cue);
   }
 
-  /** Play a cue `times` times back-to-back (e.g. a buzzer countdown). */
-  async playTimes(cue: CueName, times: number) {
-    for (let i = 0; i < times; i += 1) {
-      await this.playAndWait(cue);
+  /** Start a cue looping until `stop(cue)` is called. Idempotent. */
+  playLoop(cue: CueName) {
+    if (typeof window === "undefined") return;
+    const existing = this.activeCues.get(cue);
+    if (existing && !existing.paused && !existing.ended) return;
+
+    try {
+      this.stop(cue);
+      const audio = new Audio(this.getCuePath(cue));
+      audio.volume = this.cueVolume / 100;
+      audio.loop = true;
+      this.activeCues.set(cue, audio);
+      void audio.play().catch((error) => {
+        console.warn("Failed to loop cue", cue, error);
+      });
+    } catch (error) {
+      console.warn("Failed to loop cue", cue, error);
     }
   }
 

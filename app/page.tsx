@@ -237,9 +237,8 @@ export default function Home() {
         const transitionsToNextStation =
           current.currentRound === config.roundsPerStation &&
           current.currentStation < config.stations;
-        audioCuesRef.current.play(
-          transitionsToNextStation ? "switchStation" : "rest"
-        );
+        const restCue = transitionsToNextStation ? "switchStation" : "rest";
+        audioCuesRef.current.play(restCue);
         setSpotifyVolume(config.restVolume);
         commitPhase(
           "rest",
@@ -250,19 +249,26 @@ export default function Home() {
             ? getRestDuration(config, true)
             : undefined
         );
+        // Once the rest audio finishes, loop the buzzer until work begins.
+        void (async () => {
+          await audioCuesRef.current.waitForCueToFinish(restCue);
+          if (sessionStateRef.current.phase === "rest" && !advancingRef.current) {
+            audioCuesRef.current.playLoop("buzzer");
+          }
+        })();
         return;
       }
 
       if (current.phase === "rest") {
+        audioCuesRef.current.stop("buzzer");
         await Promise.all([
           audioCuesRef.current.waitForCueToFinish("rest"),
           audioCuesRef.current.waitForCueToFinish("switchStation"),
         ]);
 
         if (current.currentRound < config.roundsPerStation) {
-          await audioCuesRef.current.playTimes("buzzer", 3);
-          await audioCuesRef.current.playAndWait("airHorn");
           setSpotifyVolume(config.workVolume);
+          await audioCuesRef.current.playAndWait("airHorn");
           commitPhase(
             "work",
             current.currentStation,
@@ -274,9 +280,8 @@ export default function Home() {
 
         if (current.currentStation < config.stations) {
           celebrateStationComplete();
-          await audioCuesRef.current.playTimes("buzzer", 3);
-          await audioCuesRef.current.playAndWait("airHorn");
           setSpotifyVolume(config.workVolume);
+          await audioCuesRef.current.playAndWait("airHorn");
           commitPhase(
             "work",
             current.currentStation + 1,
