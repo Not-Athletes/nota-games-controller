@@ -5,7 +5,6 @@ import confetti from "canvas-confetti";
 import Link from "next/link";
 import { LiveSession } from "@/components/LiveSession";
 import { SetupForm } from "@/components/SetupForm";
-import { CuePreviewControls } from "@/components/CuePreviewControls";
 import { CoachControls } from "@/components/CoachControls";
 import { SpotifyConnect } from "@/components/SpotifyConnect";
 import { AudioCues } from "@/lib/audio";
@@ -667,11 +666,8 @@ export default function Home() {
         <CoachControls
           enabled={coach.enabled}
           onEnabledChange={coach.setEnabled}
-          available={coach.available}
           status={coach.status}
         />
-
-        <CuePreviewControls audioCuesRef={audioCuesRef} cueVolume={WORK_VOLUME} />
 
         <SetupForm
           initialValues={setupValues}
@@ -688,8 +684,6 @@ export default function Home() {
       </div>
     ),
     [
-      audioCuesRef,
-      coach.available,
       coach.enabled,
       coach.setEnabled,
       coach.status,
