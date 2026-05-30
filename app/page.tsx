@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import confetti from "canvas-confetti";
-import Link from "next/link";
 import { LiveSession } from "@/components/LiveSession";
 import { SetupForm } from "@/components/SetupForm";
 import { SpotifyConnect } from "@/components/SpotifyConnect";
@@ -47,7 +46,6 @@ const AUTO_NEXT_THRESHOLD_MS = 7000;
 const NOW_PLAYING_POLL_MS = 1000;
 
 export default function Home() {
-  const [entryPoint, setEntryPoint] = useState<"launcher" | "controller">("launcher");
   const [setupValues, setSetupValues] = useState<SetupInput>(() => {
     if (typeof window === "undefined") {
       return DEFAULT_SETUP;
@@ -262,9 +260,9 @@ export default function Home() {
         ]);
 
         if (current.currentRound < config.roundsPerStation) {
-          setSpotifyVolume(config.workVolume);
-          await audioCuesRef.current.playTimes("buzzer", 5);
+          await audioCuesRef.current.playTimes("buzzer", 3);
           await audioCuesRef.current.playAndWait("airHorn");
+          setSpotifyVolume(config.workVolume);
           commitPhase(
             "work",
             current.currentStation,
@@ -276,9 +274,9 @@ export default function Home() {
 
         if (current.currentStation < config.stations) {
           celebrateStationComplete();
-          setSpotifyVolume(config.workVolume);
-          await audioCuesRef.current.playTimes("buzzer", 5);
+          await audioCuesRef.current.playTimes("buzzer", 3);
           await audioCuesRef.current.playAndWait("airHorn");
+          setSpotifyVolume(config.workVolume);
           commitPhase(
             "work",
             current.currentStation + 1,
@@ -399,6 +397,13 @@ export default function Home() {
   const endSession = useCallback(() => {
     markComplete({ playOutro: false });
   }, [markComplete]);
+
+  const goHome = useCallback(() => {
+    clearTicker();
+    phaseEndTimeRef.current = null;
+    audioCuesRef.current.stopAll();
+    updateSessionState(() => INITIAL_STATE);
+  }, [clearTicker, updateSessionState]);
 
   const resumeNextPass = useCallback(async () => {
     const config = sessionConfigRef.current;
@@ -546,13 +551,9 @@ export default function Home() {
     () => (
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
         <header className="space-y-2 text-center">
-          <button
-            type="button"
-            onClick={() => setEntryPoint("launcher")}
-            className="font-brand text-lg font-bold tracking-[0.06em] text-zinc-600 transition hover:text-zinc-900 md:text-xl"
-          >
+          <p className="font-brand text-lg font-bold tracking-[0.06em] text-zinc-600 md:text-xl">
             Not Athletes Games
-          </button>
+          </p>
         </header>
 
         <SpotifyConnect
@@ -579,7 +580,6 @@ export default function Home() {
       audioCuesRef,
       handleConnectSpotify,
       handleDisconnectSpotify,
-      setEntryPoint,
       setupValues,
       spotifyStatus,
       startSession,
@@ -588,48 +588,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background px-4 py-8 text-foreground md:px-8">
-      {sessionState.phase === "idle" && entryPoint === "launcher" ? (
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
-          <header className="space-y-3 text-center">
-            <p className="font-brand text-lg tracking-[0.06em] text-zinc-600">NOTA Games</p>
-            <h1 className="font-display text-3xl font-semibold text-zinc-900 md:text-4xl">
-              Event Control Center
-            </h1>
-            <p className="mx-auto max-w-2xl text-sm text-zinc-600 md:text-base">
-              Choose what you want to run on event day.
-            </p>
-          </header>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => setEntryPoint("controller")}
-              className="group rounded-xl border border-zinc-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md"
-            >
-              <h2 className="font-display text-2xl text-zinc-900">Games Controller</h2>
-              <p className="mt-2 text-sm text-zinc-600">
-                Run class stations, timing, and Spotify cues.
-              </p>
-              <span className="mt-5 inline-flex rounded-md bg-zinc-900 px-3 py-1 text-xs font-semibold text-white">
-                Open controller
-              </span>
-            </button>
-
-            <Link
-              href="/raffle"
-              className="group rounded-xl border border-zinc-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md"
-            >
-              <h2 className="font-display text-2xl text-zinc-900">Raffle Draw</h2>
-              <p className="mt-2 text-sm text-zinc-600">
-                Spin a fair prize wheel with quantity limits.
-              </p>
-              <span className="mt-5 inline-flex rounded-md bg-zinc-900 px-3 py-1 text-xs font-semibold text-white">
-                Open raffle
-              </span>
-            </Link>
-          </div>
-        </div>
-      ) : sessionState.phase === "idle" ? (
+      {sessionState.phase === "idle" ? (
         setupPageContent
       ) : (
         <LiveSession
@@ -645,7 +604,7 @@ export default function Home() {
           nowPlaying={nowPlaying}
           onEndSession={endSession}
           onResumeNextPass={() => void resumeNextPass()}
-          onGoHome={() => setEntryPoint("launcher")}
+          onGoHome={goHome}
         />
       )}
     </div>
