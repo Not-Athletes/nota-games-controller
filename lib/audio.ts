@@ -1,4 +1,4 @@
-type CueName =
+export type CueName =
   | "intro"
   | "startSession"
   | "airHorn"

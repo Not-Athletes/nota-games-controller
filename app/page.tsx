@@ -6,8 +6,11 @@ import Link from "next/link";
 import { LiveSession } from "@/components/LiveSession";
 import { SetupForm } from "@/components/SetupForm";
 import { CuePreviewControls } from "@/components/CuePreviewControls";
+import { CoachControls } from "@/components/CoachControls";
 import { SpotifyConnect } from "@/components/SpotifyConnect";
 import { AudioCues } from "@/lib/audio";
+import { useNotaCoach } from "@/lib/useNotaCoach";
+import type { GameSnapshot } from "@/lib/announcer";
 import { getPhaseDuration, getRestDuration, getTotalIntervals } from "@/lib/session";
 import {
   spotifyService,
@@ -47,6 +50,25 @@ const TIMED_PHASES: Phase[] = ["work", "rest"];
 const AUTO_NEXT_THRESHOLD_MS = 7000;
 const NOW_PLAYING_POLL_MS = 1000;
 
+function makeSnapshot(
+  config: SessionConfig,
+  station: number,
+  round: number,
+  pass: number
+): GameSnapshot {
+  return {
+    pass,
+    totalPasses: config.fullSessionPasses,
+    station,
+    totalStations: config.stations,
+    round,
+    roundsPerStation: config.roundsPerStation,
+    workSeconds: config.workTime,
+    restSeconds: config.restTime,
+    restBetweenStationsSeconds: config.restBetweenStationsTime,
+  };
+}
+
 export default function Home() {
   const [entryPoint, setEntryPoint] = useState<"launcher" | "controller">("launcher");
   const [setupValues, setSetupValues] = useState<SetupInput>(() => {
@@ -82,6 +104,18 @@ export default function Home() {
   const sessionConfigRef = useRef<SessionConfig | null>(sessionConfig);
   const autoNextHandledTrackRef = useRef<string | null>(null);
   const tenSecondsCuePlayedRef = useRef<string | null>(null);
+
+  const coach = useNotaCoach(audioCuesRef);
+  const coachRef = useRef(coach);
+  useEffect(() => {
+    coachRef.current = coach;
+  }, [coach]);
+
+  useEffect(() => {
+    return () => {
+      coachRef.current.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     sessionConfigRef.current = sessionConfig;
@@ -152,10 +186,19 @@ export default function Home() {
       setSpotifyVolume(config.restVolume);
 
       if (playOutro) {
-        audioCuesRef.current.setCueVolume(config.workVolume);
-        void audioCuesRef.current.play("sessionComplete");
+        const snapshot = sessionStateRef.current;
+        void coachRef.current.announce({
+          type: "session_complete",
+          snapshot: makeSnapshot(
+            config,
+            snapshot.currentStation,
+            snapshot.currentRound,
+            snapshot.currentPass
+          ),
+        });
       } else {
         audioCuesRef.current.stopAll();
+        coachRef.current.disconnect();
       }
     },
     [clearTicker, setSpotifyVolume, updateSessionState]
@@ -206,6 +249,7 @@ export default function Home() {
         clearTicker();
         setSpotifyVolume(config.restVolume);
         phaseEndTimeRef.current = null;
+        const finishingPass = sessionStateRef.current.currentPass;
         updateSessionState((prev) => ({
           ...prev,
           phase: "passBreak",
@@ -217,7 +261,15 @@ export default function Home() {
           completedIntervals: completed,
           currentPass: prev.currentPass + 1,
         }));
-        await audioCuesRef.current.playAndWait("passTransition");
+        await coachRef.current.announce({
+          type: "pass_complete",
+          snapshot: makeSnapshot(
+            config,
+            config.stations,
+            config.roundsPerStation,
+            finishingPass
+          ),
+        });
         updateSessionState((prev) => ({
           ...prev,
           isPaused: true,
@@ -240,10 +292,17 @@ export default function Home() {
         const transitionsToNextStation =
           current.currentRound === config.roundsPerStation &&
           current.currentStation < config.stations;
-        audioCuesRef.current.play(
-          transitionsToNextStation ? "switchStation" : "rest"
-        );
         setSpotifyVolume(config.restVolume);
+        void coachRef.current.announce({
+          type: "rest_start",
+          betweenStations: transitionsToNextStation,
+          snapshot: makeSnapshot(
+            config,
+            current.currentStation,
+            current.currentRound,
+            current.currentPass
+          ),
+        });
         commitPhase(
           "rest",
           current.currentStation,
@@ -263,9 +322,17 @@ export default function Home() {
         ]);
 
         if (current.currentRound < config.roundsPerStation) {
-          audioCuesRef.current.play("nextRound");
           setSpotifyVolume(config.workVolume);
-          await audioCuesRef.current.playAndWait("airHorn");
+          await coachRef.current.announce({
+            type: "work_start",
+            reason: "next_round",
+            snapshot: makeSnapshot(
+              config,
+              current.currentStation,
+              current.currentRound + 1,
+              current.currentPass
+            ),
+          });
           commitPhase(
             "work",
             current.currentStation,
@@ -277,10 +344,17 @@ export default function Home() {
 
         if (current.currentStation < config.stations) {
           celebrateStationComplete();
-          audioCuesRef.current.play("rotateStations");
-          audioCuesRef.current.play("workStart");
           setSpotifyVolume(config.workVolume);
-          await audioCuesRef.current.playAndWait("airHorn");
+          await coachRef.current.announce({
+            type: "work_start",
+            reason: "next_station",
+            snapshot: makeSnapshot(
+              config,
+              current.currentStation + 1,
+              1,
+              current.currentPass
+            ),
+          });
           commitPhase(
             "work",
             current.currentStation + 1,
@@ -324,7 +398,15 @@ export default function Home() {
         const cueKey = `${current.currentPass}-${current.currentStation}-${current.currentRound}`;
         if (tenSecondsCuePlayedRef.current !== cueKey) {
           tenSecondsCuePlayedRef.current = cueKey;
-          audioCuesRef.current.play("tenSecondsLeft");
+          void coachRef.current.announce({
+            type: "ten_seconds_left",
+            snapshot: makeSnapshot(
+              config,
+              current.currentStation,
+              current.currentRound,
+              current.currentPass
+            ),
+          });
           setSpotifyVolume(config.restVolume);
           void (async () => {
             await audioCuesRef.current.waitForCueToFinish("tenSecondsLeft");
@@ -373,13 +455,28 @@ export default function Home() {
       }));
       tenSecondsCuePlayedRef.current = null;
 
+      coachRef.current.connect(
+        JSON.stringify({
+          event: "session_config",
+          workSeconds: config.workTime,
+          restSeconds: config.restTime,
+          restBetweenStationsSeconds: config.restBetweenStationsTime,
+          totalStations: config.stations,
+          roundsPerStation: config.roundsPerStation,
+          totalPasses: config.fullSessionPasses,
+        })
+      );
+
       setSpotifyVolume(config.workVolume);
       if (spotifyStatus.playerReady && config.spotifyPlaylistUri) {
         const deviceId = spotifyService.getStatus().deviceId;
         await spotifyService.setShuffle(true, deviceId);
         await spotifyService.playPlaylist(config.spotifyPlaylistUri);
       }
-      await audioCuesRef.current.playAndWait("airHorn");
+      await coachRef.current.announce({
+        type: "session_start",
+        snapshot: makeSnapshot(config, 1, 1, 1),
+      });
 
       phaseEndTimeRef.current = Date.now() + firstWorkSeconds * 1000;
       updateSessionState((prev) => ({
@@ -412,7 +509,11 @@ export default function Home() {
     advancingRef.current = true;
     try {
       setSpotifyVolume(config.workVolume);
-      await audioCuesRef.current.playAndWait("airHorn");
+      await coachRef.current.announce({
+        type: "work_start",
+        reason: "next_pass",
+        snapshot: makeSnapshot(config, 1, 1, current.currentPass),
+      });
       const workDuration = getPhaseDuration("work", config);
       phaseEndTimeRef.current =
         workDuration > 0 ? Date.now() + workDuration * 1000 : null;
@@ -563,6 +664,13 @@ export default function Home() {
           onDisconnect={handleDisconnectSpotify}
         />
 
+        <CoachControls
+          enabled={coach.enabled}
+          onEnabledChange={coach.setEnabled}
+          available={coach.available}
+          status={coach.status}
+        />
+
         <CuePreviewControls audioCuesRef={audioCuesRef} cueVolume={WORK_VOLUME} />
 
         <SetupForm
@@ -581,6 +689,10 @@ export default function Home() {
     ),
     [
       audioCuesRef,
+      coach.available,
+      coach.enabled,
+      coach.setEnabled,
+      coach.status,
       handleConnectSpotify,
       handleDisconnectSpotify,
       setEntryPoint,
@@ -649,7 +761,10 @@ export default function Home() {
           nowPlaying={nowPlaying}
           onEndSession={endSession}
           onResumeNextPass={() => void resumeNextPass()}
-          onGoHome={() => setEntryPoint("launcher")}
+          onGoHome={() => {
+            coachRef.current.disconnect();
+            setEntryPoint("launcher");
+          }}
         />
       )}
     </div>
