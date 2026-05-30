@@ -6,6 +6,7 @@ type CueName =
   | "workStart"
   | "tenSecondsLeft"
   | "rest"
+  | "buzzer"
   | "switchStation"
   | "rotateStations"
   | "nextRound"
@@ -19,6 +20,7 @@ const CUE_PATHS: Record<CueName, string> = {
   workStart: "/audio/work-start.mp3",
   tenSecondsLeft: "/audio/ten_seconds_left/ten_seconds_left_01.mp3",
   rest: "/audio/rest/rest_audio_0.mp3",
+  buzzer: "/audio/buzzer.mp3",
   switchStation: "/audio/switch_station.mp3",
   rotateStations: "/audio/rotate-stations.mp3",
   nextRound: "/audio/next-round.mp3",
@@ -166,6 +168,26 @@ export class AudioCues {
 
   async play(cue: CueName) {
     void this.playAndWait(cue);
+  }
+
+  /** Start a cue looping until `stop(cue)` is called. Idempotent. */
+  playLoop(cue: CueName) {
+    if (typeof window === "undefined") return;
+    const existing = this.activeCues.get(cue);
+    if (existing && !existing.paused && !existing.ended) return;
+
+    try {
+      this.stop(cue);
+      const audio = new Audio(this.getCuePath(cue));
+      audio.volume = this.cueVolume / 100;
+      audio.loop = true;
+      this.activeCues.set(cue, audio);
+      void audio.play().catch((error) => {
+        console.warn("Failed to loop cue", cue, error);
+      });
+    } catch (error) {
+      console.warn("Failed to loop cue", cue, error);
+    }
   }
 
   async playAndWait(cue: CueName) {
