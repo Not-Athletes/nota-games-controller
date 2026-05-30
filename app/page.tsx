@@ -79,6 +79,8 @@ export default function Home() {
   const sessionConfigRef = useRef<SessionConfig | null>(sessionConfig);
   const autoNextHandledTrackRef = useRef<string | null>(null);
   const tenSecondsCuePlayedRef = useRef<string | null>(null);
+  const buzzerDriverRef = useRef<Promise<void> | null>(null);
+  const buzzerStopRef = useRef(false);
 
   useEffect(() => {
     sessionConfigRef.current = sessionConfig;
@@ -249,22 +251,27 @@ export default function Home() {
             ? getRestDuration(config, true)
             : undefined
         );
-        // Once the rest audio finishes, loop the buzzer until work begins.
-        void (async () => {
+        // After the rest audio finishes, keep playing the buzzer to fill the
+        // rest. The rest→work transition flags `buzzerStopRef`, but we always
+        // play it at least 3 times so the countdown stays consistent even when
+        // a long rest clip leaves little (or no) time before work.
+        buzzerStopRef.current = false;
+        buzzerDriverRef.current = (async () => {
           await audioCuesRef.current.waitForCueToFinish(restCue);
-          if (sessionStateRef.current.phase === "rest" && !advancingRef.current) {
-            audioCuesRef.current.playLoop("buzzer");
+          let plays = 0;
+          while (!buzzerStopRef.current || plays < 3) {
+            if (sessionStateRef.current.phase !== "rest") break;
+            await audioCuesRef.current.playAndWait("buzzer");
+            plays += 1;
           }
         })();
         return;
       }
 
       if (current.phase === "rest") {
-        audioCuesRef.current.stop("buzzer");
-        await Promise.all([
-          audioCuesRef.current.waitForCueToFinish("rest"),
-          audioCuesRef.current.waitForCueToFinish("switchStation"),
-        ]);
+        // Let the buzzer finish its minimum 3 plays, then move into work.
+        buzzerStopRef.current = true;
+        await buzzerDriverRef.current;
 
         if (current.currentRound < config.roundsPerStation) {
           setSpotifyVolume(config.workVolume);
