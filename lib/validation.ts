@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+// Accepts a Spotify playlist URI (spotify:playlist:<id>) or an
+// open.spotify.com playlist link (optionally with a ?si=… query / locale path).
+const SPOTIFY_PLAYLIST_REGEX =
+  /^(spotify:playlist:[A-Za-z0-9]+|https?:\/\/open\.spotify\.com\/(?:intl-[a-z]{2}\/)?playlist\/[A-Za-z0-9]+(?:[/?].*)?)$/;
+
 export const setupSchema = z.object({
   workTime: z.coerce.number().int().min(10).max(120),
   restTime: z.coerce.number().int().min(5).max(60),
@@ -12,7 +17,14 @@ export const setupSchema = z.object({
     .string()
     .trim()
     .optional()
-    .transform((value) => value || undefined),
+    .transform((value) => value || undefined)
+    .refine(
+      (value) => value === undefined || SPOTIFY_PLAYLIST_REGEX.test(value),
+      {
+        message:
+          "Enter a valid Spotify playlist link (https://open.spotify.com/playlist/…) or URI (spotify:playlist:…).",
+      }
+    ),
 });
 
 export type SetupSchema = z.infer<typeof setupSchema>;
