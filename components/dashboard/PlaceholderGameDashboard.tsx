@@ -3,6 +3,48 @@
 import { NotaAppNav } from "@/components/NotaAppNav";
 import { usePlaceholderGameState } from "@/contexts/PlaceholderGameStateContext";
 
+const TEAM_THEMES: Record<
+  string,
+  {
+    section: string;
+    header: string;
+    score: string;
+    pairCard: string;
+    badge: string;
+    rank: string;
+  }
+> = {
+  "team-red": {
+    section: "border-red-300 bg-gradient-to-b from-red-50 to-white shadow-sm shadow-red-100/50",
+    header: "text-red-900",
+    score: "text-red-700",
+    pairCard: "bg-red-50/90 ring-1 ring-red-200/80",
+    badge: "bg-red-100 text-red-800 ring-1 ring-red-200/60",
+    rank: "text-red-400",
+  },
+  "team-blue": {
+    section: "border-blue-300 bg-gradient-to-b from-blue-50 to-white shadow-sm shadow-blue-100/50",
+    header: "text-blue-900",
+    score: "text-blue-700",
+    pairCard: "bg-blue-50/90 ring-1 ring-blue-200/80",
+    badge: "bg-blue-100 text-blue-800 ring-1 ring-blue-200/60",
+    rank: "text-blue-400",
+  },
+};
+
+const DEFAULT_TEAM_THEME = {
+  section: "border-zinc-200 bg-white shadow-sm",
+  header: "text-zinc-900",
+  score: "text-zinc-900",
+  pairCard: "bg-zinc-50",
+  badge: "bg-zinc-100 text-zinc-800",
+  rank: "text-zinc-400",
+};
+
+function getTeamTheme(teamId: string) {
+  return TEAM_THEMES[teamId] ?? DEFAULT_TEAM_THEME;
+}
+
 function StatCard({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
     <div className="flex min-h-28 flex-col rounded-sm bg-zinc-50 p-5">
@@ -45,18 +87,20 @@ export function PlaceholderGameDashboard() {
           const teamPairs = pairs
             .filter((p) => p.majorTeamId === team.id)
             .sort((a, b) => b.combinedScore - a.combinedScore);
+          const theme = getTeamTheme(team.id);
           return (
-            <section
-              key={team.id}
-              className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm"
-            >
+            <section key={team.id} className={`rounded-sm border p-5 ${theme.section}`}>
               <div className="flex items-baseline justify-between gap-4">
-                <h2 className="font-display text-2xl font-semibold text-zinc-900">{team.name}</h2>
+                <h2 className={`font-display text-2xl font-semibold ${theme.header}`}>
+                  {team.name}
+                </h2>
                 <p className="text-right">
                   <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
                     Team score
                   </span>
-                  <span className="block font-display text-3xl font-bold tabular-nums text-zinc-900">
+                  <span
+                    className={`block font-display text-3xl font-bold tabular-nums ${theme.score}`}
+                  >
                     {team.combinedScore.toLocaleString()}
                   </span>
                 </p>
@@ -66,11 +110,11 @@ export function PlaceholderGameDashboard() {
                 {teamPairs.map((pair, index) => {
                   const pairPlayers = playersByPair.get(pair.id) ?? [];
                   return (
-                    <li key={pair.id} className="rounded-sm bg-zinc-50 p-4">
+                    <li key={pair.id} className={`rounded-sm p-4 ${theme.pairCard}`}>
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
-                          <p className="font-semibold text-zinc-900">
-                            <span className="mr-2 tabular-nums text-zinc-400">#{index + 1}</span>
+                          <p className={`font-semibold ${theme.header}`}>
+                            <span className={`mr-2 tabular-nums ${theme.rank}`}>#{index + 1}</span>
                             {pair.name}
                           </p>
                           <p className="font-mono text-[10px] text-zinc-400">{pair.id}</p>
@@ -127,6 +171,7 @@ export function PlaceholderGameDashboard() {
               {rankedPlayers.map((player, index) => {
                 const pair = pairs.find((p) => p.id === player.pairId);
                 const team = majorTeams.find((t) => t.id === player.majorTeamId);
+                const theme = getTeamTheme(player.majorTeamId);
                 return (
                   <tr key={player.id} className="text-zinc-800">
                     <td className="py-3 pr-4 tabular-nums text-zinc-500">{index + 1}</td>
@@ -134,7 +179,13 @@ export function PlaceholderGameDashboard() {
                     <td className="py-3 pr-4 font-mono text-xs text-zinc-500">{player.id}</td>
                     <td className="py-3 pr-4 tabular-nums">{player.score.toLocaleString()}</td>
                     <td className="py-3 pr-4">{pair?.name ?? player.pairId}</td>
-                    <td className="py-3">{team?.name ?? player.majorTeamId}</td>
+                    <td className="py-3">
+                      <span
+                        className={`inline-flex rounded-sm px-2 py-0.5 text-xs font-semibold ${theme.badge}`}
+                      >
+                        {team?.name ?? player.majorTeamId}
+                      </span>
+                    </td>
                   </tr>
                 );
               })}
