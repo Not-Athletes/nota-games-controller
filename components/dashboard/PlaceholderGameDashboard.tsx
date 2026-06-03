@@ -2,6 +2,8 @@
 
 import { NotaAppNav } from "@/components/NotaAppNav";
 import { usePlaceholderGameState } from "@/contexts/PlaceholderGameStateContext";
+import { useSessionController } from "@/contexts/SessionControllerContext";
+import type { SessionContext } from "@/lib/placeholderGame/types";
 
 const TEAM_THEMES: Record<
   string,
@@ -58,7 +60,21 @@ function StatCard({ label, value, hint }: { label: string; value: string | numbe
 }
 
 export function PlaceholderGameDashboard() {
-  const { session, players, pairs, majorTeams, totals } = usePlaceholderGameState();
+  const { session: placeholderSession, players, pairs, majorTeams, totals } =
+    usePlaceholderGameState();
+  const { sessionState, sessionConfig } = useSessionController();
+
+  const session: SessionContext =
+    sessionConfig && sessionState.phase !== "idle"
+      ? {
+          station: sessionState.currentStation,
+          round: sessionState.currentRound,
+          pass: sessionState.currentPass,
+          totalStations: sessionConfig.stations,
+          roundsPerStation: sessionConfig.roundsPerStation,
+          totalPasses: sessionConfig.fullSessionPasses,
+        }
+      : placeholderSession;
 
   const playersByPair = new Map(pairs.map((pair) => [pair.id, players.filter((p) => p.pairId === pair.id)]));
   const rankedPlayers = [...players].sort((a, b) => b.score - a.score);

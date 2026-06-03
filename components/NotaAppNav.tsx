@@ -9,7 +9,7 @@ const NAV_ITEMS = [
 ] as const;
 
 export function NotaAppNav() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
 
   return (
     <nav
