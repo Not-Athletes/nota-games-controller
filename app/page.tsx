@@ -6,6 +6,7 @@ import { LiveSession } from "@/components/LiveSession";
 import { SetupForm } from "@/components/SetupForm";
 import { SpotifyConnect } from "@/components/SpotifyConnect";
 import { AudioCues } from "@/lib/audio";
+import { publishGameState } from "@/lib/gameState/publish";
 import { getPhaseDuration, getRestDuration, getTotalIntervals } from "@/lib/session";
 import {
   spotifyService,
@@ -86,6 +87,14 @@ export default function Home() {
     sessionConfigRef.current = sessionConfig;
   }, [sessionConfig]);
 
+  useEffect(() => {
+    publishGameState({
+      timestamp: Date.now(),
+      state: sessionStateRef.current,
+      config: sessionConfigRef.current,
+    });
+  }, []);
+
   const clearTicker = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -98,6 +107,11 @@ export default function Home() {
       const next = updater(sessionStateRef.current);
       sessionStateRef.current = next;
       setSessionState(next);
+      publishGameState({
+        timestamp: Date.now(),
+        state: next,
+        config: sessionConfigRef.current,
+      });
     },
     []
   );
@@ -356,6 +370,7 @@ export default function Home() {
 
   const startSession = useCallback(
     async (config: SessionConfig) => {
+      sessionConfigRef.current = config;
       setSessionConfig(config);
       audioCuesRef.current.setCueVolume(config.workVolume);
       await audioCuesRef.current.refreshRestCues();
