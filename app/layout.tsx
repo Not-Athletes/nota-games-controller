@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Mono } from "next/font/google";
 import localFont from "next/font/local";
+import { AppProviders } from "@/components/providers/AppProviders";
 import "./globals.css";
 
 const helvena = localFont({
@@ -48,7 +49,9 @@ export default function RootLayout({
       lang="en"
       className={`${helvena.variable} ${foun.variable} ${groutpix.variable} ${spaceMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <AppProviders>{children}</AppProviders>
+      </body>
     </html>
   );
 }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import confetti from "canvas-confetti";
 import { LiveSession } from "@/components/LiveSession";
+import { NotaAppNav } from "@/components/NotaAppNav";
 import { SetupForm } from "@/components/SetupForm";
 import { SpotifyConnect } from "@/components/SpotifyConnect";
 import { AudioCues } from "@/lib/audio";
@@ -577,10 +578,8 @@ export default function Home() {
   const setupPageContent = useMemo(
     () => (
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-        <header className="space-y-2 text-center">
-          <p className="font-brand text-lg font-bold tracking-[0.06em] text-zinc-600 md:text-xl">
-            Not Athletes Games
-          </p>
+        <header className="flex justify-center">
+          <NotaAppNav />
         </header>
 
         <SpotifyConnect

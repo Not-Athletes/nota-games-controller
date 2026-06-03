@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { NotaAppNav } from "@/components/NotaAppNav";
 import { SessionControls } from "@/components/SessionControls";
 import type { SpotifyNowPlaying, SpotifyStatus } from "@/lib/spotify";
 import type { Phase, SessionConfig, SessionState } from "@/types/session";
@@ -82,13 +83,14 @@ export function LiveSession({
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-      <header className="text-center">
+      <header className="flex flex-col items-center gap-3 text-center">
+        <NotaAppNav />
         <button
           type="button"
           onClick={onGoHome}
-          className="font-brand text-lg font-bold tracking-[0.06em] text-zinc-600 transition hover:text-zinc-900 md:text-xl"
+          className="text-sm text-zinc-500 transition hover:text-zinc-900"
         >
-          Not Athletes Games
+          Back to setup
         </button>
       </header>
 
