@@ -15,7 +15,7 @@ const TEAM_THEMES: Record<
   }
 > = {
   "team-red": {
-    section: "border-red-300 bg-gradient-to-b from-red-50 to-white shadow-sm shadow-red-100/50",
+    section: "bg-gradient-to-b from-red-50 to-white shadow-sm shadow-red-100/50",
     header: "text-red-900",
     score: "text-red-700",
     pairCard: "bg-red-50/90 ring-1 ring-red-200/80",
@@ -23,7 +23,7 @@ const TEAM_THEMES: Record<
     rank: "text-red-400",
   },
   "team-blue": {
-    section: "border-blue-300 bg-gradient-to-b from-blue-50 to-white shadow-sm shadow-blue-100/50",
+    section: "bg-gradient-to-b from-blue-50 to-white shadow-sm shadow-blue-100/50",
     header: "text-blue-900",
     score: "text-blue-700",
     pairCard: "bg-blue-50/90 ring-1 ring-blue-200/80",
@@ -33,7 +33,7 @@ const TEAM_THEMES: Record<
 };
 
 const DEFAULT_TEAM_THEME = {
-  section: "border-zinc-200 bg-white shadow-sm",
+  section: "bg-white shadow-sm",
   header: "text-zinc-900",
   score: "text-zinc-900",
   pairCard: "bg-zinc-50",
@@ -89,7 +89,7 @@ export function PlaceholderGameDashboard() {
             .sort((a, b) => b.combinedScore - a.combinedScore);
           const theme = getTeamTheme(team.id);
           return (
-            <section key={team.id} className={`rounded-sm border p-5 ${theme.section}`}>
+            <section key={team.id} className={`rounded-sm p-5 ${theme.section}`}>
               <div className="flex items-baseline justify-between gap-4">
                 <h2 className={`font-display text-2xl font-semibold ${theme.header}`}>
                   {team.name}
@@ -117,7 +117,6 @@ export function PlaceholderGameDashboard() {
                             <span className={`mr-2 tabular-nums ${theme.rank}`}>#{index + 1}</span>
                             {pair.name}
                           </p>
-                          <p className="font-mono text-[10px] text-zinc-400">{pair.id}</p>
                         </div>
                         <p className="text-right text-sm">
                           <span className="text-zinc-500">Pair score </span>
