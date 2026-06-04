@@ -11,7 +11,7 @@ const TEAM_THEMES: Record<
     section: string;
     header: string;
     score: string;
-    pairCard: string;
+    duoCard: string;
     badge: string;
     rank: string;
   }
@@ -20,7 +20,7 @@ const TEAM_THEMES: Record<
     section: "bg-gradient-to-b from-red-50 to-white shadow-sm shadow-red-100/50",
     header: "text-red-900",
     score: "text-red-700",
-    pairCard: "bg-red-50/90 ring-1 ring-red-200/80",
+    duoCard: "bg-red-50/90 ring-1 ring-red-200/80",
     badge: "bg-red-100 text-red-800 ring-1 ring-red-200/60",
     rank: "text-red-400",
   },
@@ -28,7 +28,7 @@ const TEAM_THEMES: Record<
     section: "bg-gradient-to-b from-blue-50 to-white shadow-sm shadow-blue-100/50",
     header: "text-blue-900",
     score: "text-blue-700",
-    pairCard: "bg-blue-50/90 ring-1 ring-blue-200/80",
+    duoCard: "bg-blue-50/90 ring-1 ring-blue-200/80",
     badge: "bg-blue-100 text-blue-800 ring-1 ring-blue-200/60",
     rank: "text-blue-400",
   },
@@ -38,7 +38,7 @@ const DEFAULT_TEAM_THEME = {
   section: "bg-white shadow-sm",
   header: "text-zinc-900",
   score: "text-zinc-900",
-  pairCard: "bg-zinc-50",
+  duoCard: "bg-zinc-50",
   badge: "bg-zinc-100 text-zinc-800",
   rank: "text-zinc-400",
 };
@@ -60,7 +60,7 @@ function StatCard({ label, value, hint }: { label: string; value: string | numbe
 }
 
 export function PlaceholderGameDashboard() {
-  const { session: placeholderSession, players, pairs, majorTeams, totals } =
+  const { session: placeholderSession, players, duos, majorTeams, totals } =
     usePlaceholderGameState();
   const { sessionState, sessionConfig } = useSessionController();
 
@@ -76,7 +76,7 @@ export function PlaceholderGameDashboard() {
         }
       : placeholderSession;
 
-  const playersByPair = new Map(pairs.map((pair) => [pair.id, players.filter((p) => p.pairId === pair.id)]));
+  const playersByDuo = new Map(duos.map((duo) => [duo.id, players.filter((p) => p.duoId === duo.id)]));
   const rankedPlayers = [...players].sort((a, b) => b.score - a.score);
 
   return (
@@ -86,13 +86,13 @@ export function PlaceholderGameDashboard() {
       </header>
 
       <div className="rounded-sm border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-        Placeholder data only. Live session, pairing, and scoring are not connected yet.
+        Placeholder data only. Live session, duos, and scoring are not connected yet.
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard label="Players" value={totals.players} />
-        <StatCard label="Pairs" value={totals.pairs} />
-        <StatCard label="Major teams" value={totals.majorTeams} />
+        <StatCard label="Duos" value={totals.duos} />
+        <StatCard label="Teams" value={totals.majorTeams} />
         <StatCard label="Station" value={`${session.station} / ${session.totalStations}`} />
         <StatCard label="Round" value={`${session.round} / ${session.roundsPerStation}`} />
         <StatCard label="Pass" value={`${session.pass} / ${session.totalPasses}`} />
@@ -100,8 +100,8 @@ export function PlaceholderGameDashboard() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {majorTeams.map((team) => {
-          const teamPairs = pairs
-            .filter((p) => p.majorTeamId === team.id)
+          const teamDuos = duos
+            .filter((d) => d.majorTeamId === team.id)
             .sort((a, b) => b.combinedScore - a.combinedScore);
           const theme = getTeamTheme(team.id);
           return (
@@ -123,27 +123,27 @@ export function PlaceholderGameDashboard() {
               </div>
 
               <ul className="mt-4 space-y-4">
-                {teamPairs.map((pair, index) => {
-                  const pairPlayers = playersByPair.get(pair.id) ?? [];
+                {teamDuos.map((duo, index) => {
+                  const duoPlayers = playersByDuo.get(duo.id) ?? [];
                   return (
-                    <li key={pair.id} className={`rounded-sm p-4 ${theme.pairCard}`}>
+                    <li key={duo.id} className={`rounded-sm p-4 ${theme.duoCard}`}>
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
                           <p className={`font-semibold ${theme.header}`}>
                             <span className={`mr-2 tabular-nums ${theme.rank}`}>#{index + 1}</span>
-                            {pair.name}
+                            {duo.name}
                           </p>
                         </div>
                         <p className="text-right text-sm">
-                          <span className="text-zinc-500">Pair score </span>
+                          <span className="text-zinc-500">Duo score </span>
                           <span className="font-semibold tabular-nums text-zinc-900">
-                            {pair.combinedScore.toLocaleString()}
+                            {duo.combinedScore.toLocaleString()}
                           </span>
                         </p>
                       </div>
 
                       <ul className="mt-3 divide-y divide-zinc-200/80">
-                        {pairPlayers.map((player) => (
+                        {duoPlayers.map((player) => (
                           <li
                             key={player.id}
                             className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0"
@@ -178,13 +178,13 @@ export function PlaceholderGameDashboard() {
                 <th className="pb-3 pr-4">Player</th>
                 <th className="pb-3 pr-4">ID</th>
                 <th className="pb-3 pr-4">Score</th>
-                <th className="pb-3 pr-4">Pair</th>
+                <th className="pb-3 pr-4">Duo</th>
                 <th className="pb-3">Team</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {rankedPlayers.map((player, index) => {
-                const pair = pairs.find((p) => p.id === player.pairId);
+                const duo = duos.find((d) => d.id === player.duoId);
                 const team = majorTeams.find((t) => t.id === player.majorTeamId);
                 const theme = getTeamTheme(player.majorTeamId);
                 return (
@@ -193,7 +193,7 @@ export function PlaceholderGameDashboard() {
                     <td className="py-3 pr-4 font-medium text-zinc-900">{player.tag}</td>
                     <td className="py-3 pr-4 font-mono text-xs text-zinc-500">{player.id}</td>
                     <td className="py-3 pr-4 tabular-nums">{player.score.toLocaleString()}</td>
-                    <td className="py-3 pr-4">{pair?.name ?? player.pairId}</td>
+                    <td className="py-3 pr-4">{duo?.name ?? player.duoId}</td>
                     <td className="py-3">
                       <span
                         className={`inline-flex rounded-sm px-2 py-0.5 text-xs font-semibold ${theme.badge}`}

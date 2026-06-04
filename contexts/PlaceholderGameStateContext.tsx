@@ -7,7 +7,7 @@ import type { PlaceholderGameState } from "@/lib/placeholderGame/types";
 const PlaceholderGameStateContext = createContext<PlaceholderGameState | null>(null);
 
 /**
- * Shared read-only placeholder game hierarchy (Player → Pair → Major Team).
+ * Shared read-only placeholder game hierarchy (Player → Duo → Major Team).
  * Available on any page under the root layout. Replace `buildPlaceholderGameState`
  * with live ingest/API data when the backend is ready.
  */

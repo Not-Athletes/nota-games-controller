@@ -4,12 +4,12 @@ import {
   PLACEHOLDER_SESSION,
 } from "@/lib/placeholderGame/data";
 import type {
+  PlaceholderDuo,
   PlaceholderGameState,
-  PlaceholderPair,
   PlaceholderPlayer,
 } from "@/lib/placeholderGame/types";
 
-/** Official NATO phonetic alphabet (ICAO) — used for random pair names. */
+/** Official NATO phonetic alphabet (ICAO) — used for random duo names. */
 const NATO_PHONETIC_ALPHABET = [
   "Alpha",
   "Bravo",
@@ -52,20 +52,20 @@ function pickRandomNatoNames(count: number): string[] {
   return picked;
 }
 
-function buildPairs(players: PlaceholderPlayer[]): PlaceholderPair[] {
-  const byPair = new Map<string, PlaceholderPlayer[]>();
+function buildDuos(players: PlaceholderPlayer[]): PlaceholderDuo[] {
+  const byDuo = new Map<string, PlaceholderPlayer[]>();
   for (const player of players) {
-    const group = byPair.get(player.pairId) ?? [];
+    const group = byDuo.get(player.duoId) ?? [];
     group.push(player);
-    byPair.set(player.pairId, group);
+    byDuo.set(player.duoId, group);
   }
 
-  const entries = [...byPair.entries()].sort(([a], [b]) => a.localeCompare(b));
+  const entries = [...byDuo.entries()].sort(([a], [b]) => a.localeCompare(b));
   const natoNames = pickRandomNatoNames(entries.length);
 
-  return entries.map(([pairId, members], index) => ({
-    id: pairId,
-    name: natoNames[index] ?? pairId,
+  return entries.map(([duoId, members], index) => ({
+    id: duoId,
+    name: natoNames[index] ?? duoId,
     playerIds: members.map((m) => m.id),
     majorTeamId: members[0].majorTeamId,
     combinedScore: members.reduce((sum, m) => sum + m.score, 0),
@@ -75,14 +75,14 @@ function buildPairs(players: PlaceholderPlayer[]): PlaceholderPair[] {
 /** Build the full read-only placeholder view model (aggregated scores + totals). */
 export function buildPlaceholderGameState(): PlaceholderGameState {
   const players = PLACEHOLDER_PLAYERS;
-  const pairs = buildPairs(players);
+  const duos = buildDuos(players);
 
-  const pairScoreById = new Map(pairs.map((p) => [p.id, p.combinedScore]));
+  const duoScoreById = new Map(duos.map((d) => [d.id, d.combinedScore]));
 
   const majorTeams = PLACEHOLDER_MAJOR_TEAMS.map((team) => ({
     ...team,
-    combinedScore: team.pairIds.reduce(
-      (sum, pairId) => sum + (pairScoreById.get(pairId) ?? 0),
+    combinedScore: team.duoIds.reduce(
+      (sum, duoId) => sum + (duoScoreById.get(duoId) ?? 0),
       0
     ),
   }));
@@ -90,11 +90,11 @@ export function buildPlaceholderGameState(): PlaceholderGameState {
   return {
     session: PLACEHOLDER_SESSION,
     players,
-    pairs,
+    duos,
     majorTeams,
     totals: {
       players: players.length,
-      pairs: pairs.length,
+      duos: duos.length,
       majorTeams: majorTeams.length,
     },
   };

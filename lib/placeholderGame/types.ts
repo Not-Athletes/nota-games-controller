@@ -1,4 +1,4 @@
-/** Read-only placeholder hierarchy: Player → Pair → Major Team */
+/** Read-only placeholder hierarchy: Player → Duo → Major Team */
 
 export type SessionContext = {
   station: number;
@@ -13,11 +13,11 @@ export type PlaceholderPlayer = {
   id: string;
   tag: string;
   score: number;
-  pairId: string;
+  duoId: string;
   majorTeamId: string;
 };
 
-export type PlaceholderPair = {
+export type PlaceholderDuo = {
   id: string;
   name: string;
   playerIds: string[];
@@ -28,18 +28,18 @@ export type PlaceholderPair = {
 export type PlaceholderMajorTeam = {
   id: string;
   name: string;
-  pairIds: string[];
+  duoIds: string[];
   combinedScore: number;
 };
 
 export type PlaceholderGameState = {
   session: SessionContext;
   players: PlaceholderPlayer[];
-  pairs: PlaceholderPair[];
+  duos: PlaceholderDuo[];
   majorTeams: PlaceholderMajorTeam[];
   totals: {
     players: number;
-    pairs: number;
+    duos: number;
     majorTeams: number;
   };
 };
