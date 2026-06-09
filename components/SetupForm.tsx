@@ -21,6 +21,7 @@ function Field({
   error,
   placeholder,
   className,
+  disabled = false,
 }: {
   label: string;
   description: string;
@@ -31,20 +32,38 @@ function Field({
   error?: string;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }) {
   return (
-    <label className={`flex min-h-36 flex-col rounded-sm bg-zinc-50 p-5 ${className ?? ""}`}>
-      <span className="text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">
+    <label
+      className={`flex min-h-36 flex-col rounded-sm p-5 ${
+        disabled ? "bg-zinc-100/80" : "bg-zinc-50"
+      } ${className ?? ""}`}
+    >
+      <span
+        className={`text-xs font-semibold uppercase tracking-[0.1em] ${
+          disabled ? "text-zinc-400" : "text-zinc-500"
+        }`}
+      >
         {label}
       </span>
-      <span className="mt-1 text-xs leading-relaxed text-zinc-500">{description}</span>
+      <span
+        className={`mt-1 text-xs leading-relaxed ${disabled ? "text-zinc-400" : "text-zinc-500"}`}
+      >
+        {description}
+      </span>
       <input
         name={name}
         type={type}
         value={value}
         placeholder={placeholder}
+        disabled={disabled}
         onChange={(event) => onChange(name, event.target.value)}
-        className="mt-auto rounded-sm border border-zinc-300 bg-white px-4 py-3 text-zinc-900 outline-none ring-0 transition focus:border-zinc-500"
+        className={`mt-auto rounded-sm border px-4 py-3 outline-none ring-0 transition ${
+          disabled
+            ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400"
+            : "border-zinc-300 bg-white text-zinc-900 focus:border-zinc-500"
+        }`}
       />
       {error ? <span className="mt-2 text-xs text-red-400">{error}</span> : null}
     </label>
@@ -66,6 +85,10 @@ export function SetupForm({ initialValues, onStart }: SetupFormProps) {
         [name]: Number(value),
       } as SetupInput;
     });
+  };
+
+  const handleSpotifyEnabledChange = (enabled: boolean) => {
+    setFormValues((prev) => ({ ...prev, spotifyEnabled: enabled }));
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -145,17 +168,63 @@ export function SetupForm({ initialValues, onStart }: SetupFormProps) {
           onChange={handleChange}
           error={errors.maxTrackPlaySeconds}
         />
-        <Field
-          label="Spotify Playlist"
-          description="Paste a playlist link (open.spotify.com/playlist/…) or URI (spotify:playlist:…) to shuffle during the session. Leave blank to skip Spotify."
-          name="spotifyPlaylistUri"
-          type="text"
-          value={formValues.spotifyPlaylistUri ?? ""}
-          onChange={handleChange}
-          error={errors.spotifyPlaylistUri}
-          placeholder="https://open.spotify.com/playlist/…"
-          className="sm:col-span-2 lg:col-span-3"
-        />
+        <div className="flex min-h-36 flex-col rounded-sm bg-zinc-50 p-5 sm:col-span-2 lg:col-span-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">
+              Spotify Music
+            </span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={formValues.spotifyEnabled}
+                onClick={() => handleSpotifyEnabledChange(!formValues.spotifyEnabled)}
+                className={`relative h-8 w-14 shrink-0 rounded-full transition ${
+                  formValues.spotifyEnabled ? "bg-[#1DB954]" : "bg-zinc-300"
+                }`}
+              >
+                <span
+                  className={`absolute top-1 left-1 h-6 w-6 rounded-full bg-white shadow transition ${
+                    formValues.spotifyEnabled ? "translate-x-6" : "translate-x-0"
+                  }`}
+                />
+              </button>
+              <span className="text-sm font-medium text-zinc-800">
+                {formValues.spotifyEnabled ? "On" : "Off"}
+              </span>
+            </div>
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+            {formValues.spotifyEnabled
+              ? "Playlist shuffles during work; volume drops on rest and cues."
+              : "No music. Timers, air horn, rest cues, and buzzers still run."}
+          </p>
+          <label className="mt-4 flex flex-col gap-2">
+            <span
+              className={`text-xs font-semibold uppercase tracking-[0.1em] ${
+                formValues.spotifyEnabled ? "text-zinc-500" : "text-zinc-400"
+              }`}
+            >
+              Playlist
+            </span>
+            <input
+              name="spotifyPlaylistUri"
+              type="text"
+              value={formValues.spotifyPlaylistUri ?? ""}
+              disabled={!formValues.spotifyEnabled}
+              placeholder="https://open.spotify.com/playlist/…"
+              onChange={(event) => handleChange("spotifyPlaylistUri", event.target.value)}
+              className={`rounded-sm border px-4 py-3 outline-none ring-0 transition ${
+                formValues.spotifyEnabled
+                  ? "border-zinc-300 bg-white text-zinc-900 focus:border-zinc-500"
+                  : "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400"
+              }`}
+            />
+            {errors.spotifyPlaylistUri ? (
+              <span className="text-xs text-red-400">{errors.spotifyPlaylistUri}</span>
+            ) : null}
+          </label>
+        </div>
       </div>
 
       <button

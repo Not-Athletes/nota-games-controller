@@ -21,7 +21,12 @@ import {
   TIMED_PHASES,
   WORK_VOLUME,
 } from "@/lib/session/constants";
-import { getPhaseDuration, getRestDuration, getTotalIntervals } from "@/lib/session";
+import {
+  getPhaseDuration,
+  getRestDuration,
+  getTotalIntervals,
+  isSpotifyPlaybackActive,
+} from "@/lib/session";
 import {
   spotifyService,
   type SpotifyNowPlaying,
@@ -42,6 +47,7 @@ type SessionControllerContextValue = {
   resumeNextPass: () => Promise<void>;
   handleConnectSpotify: () => void;
   handleDisconnectSpotify: () => void;
+  setSpotifyEnabled: (enabled: boolean) => Promise<void>;
   workVolume: number;
   restVolume: number;
   defaultSetup: SetupInput;
@@ -135,10 +141,60 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
   }, []);
 
   const setSpotifyVolume = useCallback((volume: number) => {
+    if (!isSpotifyPlaybackActive(sessionConfigRef.current)) return;
     if (spotifyService.getStatus().playerReady) {
       void spotifyService.setVolume(volume);
     }
   }, []);
+
+  const publishCurrentState = useCallback(() => {
+    publishGameState({
+      timestamp: Date.now(),
+      state: sessionStateRef.current,
+      config: sessionConfigRef.current,
+    });
+  }, []);
+
+  const setSpotifyEnabled = useCallback(
+    async (enabled: boolean) => {
+      const config = sessionConfigRef.current;
+      if (!config || config.spotifyEnabled === enabled) return;
+
+      const nextConfig = { ...config, spotifyEnabled: enabled };
+      sessionConfigRef.current = nextConfig;
+      setSessionConfig(nextConfig);
+      const nextSetup: SetupInput = {
+        workTime: config.workTime,
+        restTime: config.restTime,
+        restBetweenStationsTime: config.restBetweenStationsTime,
+        roundsPerStation: config.roundsPerStation,
+        stations: config.stations,
+        fullSessionPasses: config.fullSessionPasses,
+        maxTrackPlaySeconds: config.maxTrackPlaySeconds,
+        spotifyPlaylistUri: config.spotifyPlaylistUri,
+        spotifyEnabled: enabled,
+      };
+      setSetupValues(nextSetup);
+      localStorage.setItem("nota_class_controller_setup", JSON.stringify(nextSetup));
+      publishCurrentState();
+
+      if (!enabled) {
+        await spotifyService.pause(spotifyService.getStatus().deviceId);
+        setNowPlaying(null);
+        return;
+      }
+
+      if (!isSpotifyPlaybackActive(nextConfig) || !spotifyPlayerReadyRef.current) return;
+
+      const { phase } = sessionStateRef.current;
+      const volume = phase === "work" ? nextConfig.workVolume : nextConfig.restVolume;
+      const deviceId = spotifyService.getStatus().deviceId;
+      await spotifyService.setShuffle(true, deviceId);
+      await spotifyService.playPlaylist(nextConfig.spotifyPlaylistUri);
+      setSpotifyVolume(volume);
+    },
+    [publishCurrentState, setSpotifyVolume]
+  );
 
   const celebrateStationComplete = useCallback(() => {
     confetti({
@@ -392,7 +448,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
       tenSecondsCuePlayedRef.current = null;
 
       setSpotifyVolume(config.workVolume);
-      if (spotifyPlayerReadyRef.current && config.spotifyPlaylistUri) {
+      if (isSpotifyPlaybackActive(config) && spotifyPlayerReadyRef.current) {
         const deviceId = spotifyService.getStatus().deviceId;
         await spotifyService.setShuffle(true, deviceId);
         await spotifyService.playPlaylist(config.spotifyPlaylistUri);
@@ -501,7 +557,9 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
 
   useEffect(() => {
     const shouldPollNowPlaying =
-      spotifyStatus.authenticated && sessionState.phase !== "idle";
+      spotifyStatus.authenticated &&
+      isSpotifyPlaybackActive(sessionConfigRef.current) &&
+      sessionState.phase !== "idle";
     const canAutoAdvanceTrack =
       sessionState.phase !== "idle" &&
       sessionState.phase !== "complete" &&
@@ -576,6 +634,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
     resumeNextPass,
     handleConnectSpotify,
     handleDisconnectSpotify,
+    setSpotifyEnabled,
     workVolume: WORK_VOLUME,
     restVolume: REST_VOLUME,
     defaultSetup: DEFAULT_SETUP,

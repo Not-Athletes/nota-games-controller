@@ -20,6 +20,7 @@ export function ControllerPage() {
     resumeNextPass,
     handleConnectSpotify,
     handleDisconnectSpotify,
+    setSpotifyEnabled,
     workVolume,
     restVolume,
     defaultSetup,
@@ -72,6 +73,7 @@ export function ControllerPage() {
         onEndSession={endSession}
         onResumeNextPass={() => void resumeNextPass()}
         onGoHome={goHome}
+        onToggleSpotifyEnabled={(enabled) => void setSpotifyEnabled(enabled)}
       />
     </div>
   );

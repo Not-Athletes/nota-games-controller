@@ -1,39 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { z } from "zod";
+import { gameStatePayloadSchema } from "@/lib/gameState/schema";
 import type { GameStatePayload } from "@/lib/gameState/types";
-
-const sessionStateSchema = z.object({
-  phase: z.enum(["idle", "work", "rest", "passBreak", "complete"]),
-  currentStation: z.number(),
-  currentRound: z.number(),
-  currentPass: z.number(),
-  timeRemaining: z.number(),
-  isRunning: z.boolean(),
-  isPaused: z.boolean(),
-  completedIntervals: z.number(),
-  totalIntervals: z.number(),
-  startedAtMs: z.number().optional(),
-  endedAtMs: z.number().optional(),
-});
-
-const sessionConfigSchema = z.object({
-  workTime: z.number(),
-  restTime: z.number(),
-  restBetweenStationsTime: z.number(),
-  roundsPerStation: z.number(),
-  stations: z.number(),
-  fullSessionPasses: z.number(),
-  maxTrackPlaySeconds: z.number(),
-  workVolume: z.number(),
-  restVolume: z.number(),
-  spotifyPlaylistUri: z.string().optional(),
-});
-
-const payloadSchema = z.object({
-  timestamp: z.number(),
-  state: sessionStateSchema,
-  config: sessionConfigSchema.nullable(),
-});
 
 /** Latest snapshot — useful for a dashboard polling GET until realtime is wired. */
 let latestSnapshot: GameStatePayload | null = null;
@@ -64,7 +31,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const parsed = payloadSchema.safeParse(req.body);
+  const parsed = gameStatePayloadSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid game state payload" });
   }

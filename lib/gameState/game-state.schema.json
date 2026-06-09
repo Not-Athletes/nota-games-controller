@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RuntimeGameState",
+  "description": "Published snapshot while a session is active (not idle). Same body on POST /api/game-state, GET /api/game-state, and GAME_STATE_WEBHOOK_URL.",
+  "type": "object",
+  "required": ["timestamp", "state", "config"],
+  "properties": {
+    "timestamp": {
+      "type": "integer",
+      "description": "Milliseconds since epoch when the controller produced this snapshot. Use to detect stale updates and order events."
+    },
+    "state": {
+      "type": "object",
+      "description": "Current position and timing in the active session.",
+      "required": [
+        "phase",
+        "currentStation",
+        "currentRound",
+        "currentPass",
+        "timeRemaining",
+        "isRunning",
+        "isPaused",
+        "completedIntervals",
+        "totalIntervals"
+      ],
+      "properties": {
+        "phase": {
+          "type": "string",
+          "enum": ["work", "rest", "passBreak", "complete"],
+          "description": "Current session phase. work = exercise interval; rest = between rounds or stations; passBreak = pause between full circuit passes (manual resume); complete = session finished."
+        },
+        "currentStation": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "1-based station index within the current pass (1 … config.stations)."
+        },
+        "currentRound": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "1-based round index at the current station (1 … config.roundsPerStation)."
+        },
+        "currentPass": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "1-based pass through the full circuit of all stations × rounds (1 … config.fullSessionPasses)."
+        },
+        "timeRemaining": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Seconds left in the current timed phase (work or rest). 0 during passBreak and complete."
+        },
+        "isRunning": {
+          "type": "boolean",
+          "description": "True while the session clock is actively ticking (false when paused or waiting for manual resume on passBreak)."
+        },
+        "isPaused": {
+          "type": "boolean",
+          "description": "True when the operator has paused the session timer."
+        },
+        "completedIntervals": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of finished work + rest intervals in this session so far."
+        },
+        "totalIntervals": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Total work + rest intervals for the full session. Progress = completedIntervals / totalIntervals."
+        },
+        "startedAtMs": {
+          "type": "integer",
+          "description": "Wall-clock ms when the session left idle and started. Present once the game is underway."
+        },
+        "endedAtMs": {
+          "type": "integer",
+          "description": "Wall-clock ms when the session reached complete. Present only after the game has ended."
+        }
+      }
+    },
+    "config": {
+      "type": "object",
+      "description": "Session rules in effect for this run. Always present while the game is active.",
+      "required": [
+        "workTime",
+        "restTime",
+        "restBetweenStationsTime",
+        "roundsPerStation",
+        "stations",
+        "fullSessionPasses",
+        "maxTrackPlaySeconds",
+        "workVolume",
+        "restVolume",
+        "spotifyEnabled"
+      ],
+      "properties": {
+        "workTime": {
+          "type": "integer",
+          "description": "Length of each work interval in seconds (default 45)."
+        },
+        "restTime": {
+          "type": "integer",
+          "description": "Rest duration between rounds at the same station, in seconds (default 15)."
+        },
+        "restBetweenStationsTime": {
+          "type": "integer",
+          "description": "Rest duration after the last round at a station, before moving to the next station, in seconds (default 30)."
+        },
+        "roundsPerStation": {
+          "type": "integer",
+          "description": "Number of work rounds at each station before advancing (default 3)."
+        },
+        "stations": {
+          "type": "integer",
+          "description": "Number of stations in one circuit pass (default 6)."
+        },
+        "fullSessionPasses": {
+          "type": "integer",
+          "description": "How many full passes through all stations × rounds constitute the session (default 2)."
+        },
+        "maxTrackPlaySeconds": {
+          "type": "integer",
+          "description": "Maximum seconds a Spotify track may play before the controller skips to the next track."
+        },
+        "workVolume": {
+          "type": "number",
+          "description": "Spotify playback volume during work phases, 0–100."
+        },
+        "restVolume": {
+          "type": "number",
+          "description": "Spotify playback volume during rest phases, 0–100."
+        },
+        "spotifyPlaylistUri": {
+          "type": "string",
+          "description": "Spotify playlist URI or URL backing the session soundtrack. Omitted if no playlist was set."
+        },
+        "spotifyEnabled": {
+          "type": "boolean",
+          "description": "When false, no playlist plays even if connected and a URL is set. Timers and audio cues still run."
+        }
+      }
+    }
+  }
+}

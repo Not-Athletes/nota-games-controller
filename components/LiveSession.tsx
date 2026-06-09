@@ -15,6 +15,7 @@ type LiveSessionProps = {
   onEndSession: () => void;
   onResumeNextPass?: () => void;
   onGoHome: () => void;
+  onToggleSpotifyEnabled: (enabled: boolean) => void;
 };
 
 const phaseLabel: Record<Phase, string> = {
@@ -52,6 +53,7 @@ export function LiveSession({
   onEndSession,
   onResumeNextPass,
   onGoHome,
+  onToggleSpotifyEnabled,
 }: LiveSessionProps) {
   const [nowMs, setNowMs] = useState(0);
 
@@ -70,6 +72,7 @@ export function LiveSession({
       ? Math.min(100, (state.completedIntervals / state.totalIntervals) * 100)
       : 0;
   const isSpotifyConnected = spotifyStatus.authenticated && spotifyStatus.playerReady;
+  const isMusicOn = config.spotifyEnabled && Boolean(config.spotifyPlaylistUri?.trim());
   const spotifyIconSrc = isSpotifyConnected
     ? "/icons/Primary_Logo_Green_RGB.svg"
     : "/icons/Primary_Logo_Black_PMS_C.svg";
@@ -152,6 +155,36 @@ export function LiveSession({
             </p>
           </div>
           <div className="rounded-sm bg-zinc-50 p-5 md:col-span-3">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold tracking-[0.1em] text-zinc-500">SPOTIFY MUSIC</p>
+                <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+                  {config.spotifyEnabled
+                    ? "Playlist on work, quieter on rest."
+                    : "Cues and timers only—no music."}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={config.spotifyEnabled}
+                  onClick={() => onToggleSpotifyEnabled(!config.spotifyEnabled)}
+                  className={`relative h-8 w-14 shrink-0 rounded-full transition ${
+                    config.spotifyEnabled ? "bg-[#1DB954]" : "bg-zinc-300"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 left-1 h-6 w-6 rounded-full bg-white shadow transition ${
+                      config.spotifyEnabled ? "translate-x-6" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+                <span className="text-sm font-medium text-zinc-800">
+                  {config.spotifyEnabled ? "On" : "Off"}
+                </span>
+              </div>
+            </div>
             <div className="flex items-center gap-4">
               <div className="h-14 w-14 overflow-hidden rounded-sm bg-zinc-100">
                 {nowPlaying?.albumArtUrl ? (
@@ -171,10 +204,16 @@ export function LiveSession({
               </div>
               <div className="min-w-0 flex-1 text-left">
                 <p className="truncate text-sm font-semibold text-zinc-900">
-                  {nowPlaying?.trackName ?? "No track playing"}
+                  {!isMusicOn
+                    ? "Music off"
+                    : nowPlaying?.trackName ?? "No track playing"}
                 </p>
                 <p className="truncate text-xs text-zinc-600">
-                  {nowPlaying ? `${nowPlaying.artistName} - ${nowPlaying.albumName}` : "Spotify"}
+                  {!isMusicOn
+                    ? "Timers and audio cues only"
+                    : nowPlaying
+                      ? `${nowPlaying.artistName} - ${nowPlaying.albumName}`
+                      : "Spotify"}
                 </p>
               </div>
             </div>
@@ -184,7 +223,7 @@ export function LiveSession({
                 <div
                   key={`eq-${idx}`}
                   className={`w-1 rounded-sm ${
-                    isSpotifyConnected ? "bg-[#1DB954] animate-pulse" : "bg-zinc-300"
+                    isMusicOn && isSpotifyConnected ? "bg-[#1DB954] animate-pulse" : "bg-zinc-300"
                   }`}
                   style={{
                     height: `${height}px`,

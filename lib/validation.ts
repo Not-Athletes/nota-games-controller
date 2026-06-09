@@ -13,6 +13,7 @@ export const setupSchema = z.object({
   stations: z.coerce.number().int().min(1).max(12),
   fullSessionPasses: z.coerce.number().int().min(1).max(5),
   maxTrackPlaySeconds: z.coerce.number().int().min(30).max(600),
+  spotifyEnabled: z.boolean(),
   spotifyPlaylistUri: z
     .string()
     .trim()

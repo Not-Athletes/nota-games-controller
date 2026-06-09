@@ -9,6 +9,7 @@ export const DEFAULT_SETUP: SetupInput = {
   fullSessionPasses: 2,
   maxTrackPlaySeconds: 190,
   spotifyPlaylistUri: "",
+  spotifyEnabled: false,
 };
 
 export const WORK_VOLUME = 100;

@@ -18,6 +18,8 @@ export type SessionConfig = {
   workVolume: number;
   restVolume: number;
   spotifyPlaylistUri?: string;
+  /** When false, no playlist plays even if connected and a URL is set. */
+  spotifyEnabled: boolean;
 };
 
 export type SessionState = {
@@ -44,4 +46,5 @@ export type SetupInput = {
   fullSessionPasses: number;
   maxTrackPlaySeconds: number;
   spotifyPlaylistUri?: string;
+  spotifyEnabled: boolean;
 };

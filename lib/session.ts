@@ -1,5 +1,11 @@
 import type { Phase, SessionConfig } from "@/types/session";
 
+export function isSpotifyPlaybackActive(
+  config: Pick<SessionConfig, "spotifyEnabled" | "spotifyPlaylistUri"> | null
+) {
+  return Boolean(config?.spotifyEnabled && config.spotifyPlaylistUri?.trim());
+}
+
 export function getRestDuration(config: SessionConfig, betweenStations: boolean) {
   return betweenStations ? config.restBetweenStationsTime : config.restTime;
 }
