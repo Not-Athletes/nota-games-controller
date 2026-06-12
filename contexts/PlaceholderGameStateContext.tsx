@@ -1,18 +1,37 @@
 "use client";
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { useRoster } from "@/contexts/RosterContext";
+import { useSessionController } from "@/contexts/SessionControllerContext";
 import { buildPlaceholderGameState } from "@/lib/placeholderGame/buildState";
-import type { PlaceholderGameState } from "@/lib/placeholderGame/types";
+import type { PlaceholderGameState, SessionContext } from "@/lib/placeholderGame/types";
+import { rosterToGameState } from "@/lib/roster/toGameState";
 
 const PlaceholderGameStateContext = createContext<PlaceholderGameState | null>(null);
 
-/**
- * Shared read-only placeholder game hierarchy (Player → Duo → Major Team).
- * Available on any page under the root layout. Replace `buildPlaceholderGameState`
- * with live ingest/API data when the backend is ready.
- */
 export function PlaceholderGameStateProvider({ children }: { children: ReactNode }) {
-  const value = useMemo(() => buildPlaceholderGameState(), []);
+  const { roster } = useRoster();
+  const { sessionState, sessionConfig } = useSessionController();
+
+  const value = useMemo(() => {
+    const session: SessionContext =
+      sessionConfig && sessionState.phase !== "idle"
+        ? {
+            station: sessionState.currentStation,
+            round: sessionState.currentRound,
+            pass: sessionState.currentPass,
+            totalStations: sessionConfig.stations,
+            roundsPerStation: sessionConfig.roundsPerStation,
+            totalPasses: sessionConfig.fullSessionPasses,
+          }
+        : buildPlaceholderGameState().session;
+
+    if (roster.players.length > 0) {
+      return rosterToGameState(roster, session);
+    }
+
+    return buildPlaceholderGameState();
+  }, [roster, sessionConfig, sessionState]);
 
   return (
     <PlaceholderGameStateContext.Provider value={value}>

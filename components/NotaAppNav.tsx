@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { href: "/", label: "Controller" },
-  { href: "/results", label: "Results" },
+  { href: "/players", label: "Players" },
+  { href: "/scores", label: "Scores" },
 ] as const;
 
 export function NotaAppNav() {

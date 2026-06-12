@@ -88,13 +88,6 @@ export function LiveSession({
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
       <header className="flex flex-col items-center gap-3 text-center">
         <NotaAppNav />
-        <button
-          type="button"
-          onClick={onGoHome}
-          className="text-sm text-zinc-500 transition hover:text-zinc-900"
-        >
-          Back to setup
-        </button>
       </header>
 
       <div className="grid grid-cols-1 gap-4 text-sm text-zinc-700 md:grid-cols-3">
@@ -252,13 +245,13 @@ export function LiveSession({
           </div>
       </div>
 
-      {state.phase !== "complete" ? (
-        <SessionControls
-          onEndSession={onEndSession}
-          onResumeNextPass={onResumeNextPass}
-          showResumeNextPass={isPassPaused}
-        />
-      ) : null}
+      <SessionControls
+        onEndSession={onEndSession}
+        onResumeNextPass={onResumeNextPass}
+        showResumeNextPass={isPassPaused}
+        sessionComplete={state.phase === "complete"}
+        onGoHome={onGoHome}
+      />
     </div>
   );
 }

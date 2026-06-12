@@ -74,7 +74,7 @@ function readSetupFromStorage(): SetupInput {
 
 /**
  * Lives at the app root so session timers, audio, and Spotify survive
- * navigation between Controller (/) and Results (/results).
+ * navigation between Controller (/), Players (/players), and Scores (/scores).
  */
 export function SessionControllerProvider({ children }: { children: ReactNode }) {
   const [setupValues, setSetupValues] = useState<SetupInput>(readSetupFromStorage);

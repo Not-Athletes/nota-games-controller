@@ -6,6 +6,8 @@ type SessionControlsProps = {
   onEndSession: () => void;
   onResumeNextPass?: () => void;
   showResumeNextPass?: boolean;
+  sessionComplete?: boolean;
+  onGoHome?: () => void;
 };
 
 function ControlButton({
@@ -16,7 +18,7 @@ function ControlButton({
 }: {
   label: string;
   onClick: () => void;
-  tone?: "default" | "danger" | "primary";
+  tone?: "default" | "danger" | "primary" | "muted";
   disabled?: boolean;
 }) {
   return (
@@ -28,7 +30,9 @@ function ControlButton({
           ? "bg-red-500 text-white hover:bg-red-400"
           : tone === "primary"
             ? "bg-[#1DB954] text-white hover:bg-[#18a449]"
-            : "bg-zinc-900 text-white hover:bg-zinc-800"
+            : tone === "muted"
+              ? "bg-zinc-200 text-zinc-900 hover:bg-zinc-300"
+              : "bg-zinc-900 text-white hover:bg-zinc-800"
       } disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-500`}
     >
       {label}
@@ -40,6 +44,8 @@ export function SessionControls({
   onEndSession,
   onResumeNextPass,
   showResumeNextPass = false,
+  sessionComplete = false,
+  onGoHome,
 }: SessionControlsProps) {
   const [confirmingEnd, setConfirmingEnd] = useState(false);
 
@@ -48,6 +54,14 @@ export function SessionControls({
     const timeout = setTimeout(() => setConfirmingEnd(false), 5000);
     return () => clearTimeout(timeout);
   }, [confirmingEnd]);
+
+  if (sessionComplete && onGoHome) {
+    return (
+      <div className="grid grid-cols-1 gap-3">
+        <ControlButton label="Back to setup" tone="primary" onClick={onGoHome} />
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 gap-3">
@@ -62,7 +76,7 @@ export function SessionControls({
         <div className="grid grid-cols-2 gap-3">
           <ControlButton
             label="Cancel"
-            tone="default"
+            tone="muted"
             onClick={() => setConfirmingEnd(false)}
           />
           <ControlButton
