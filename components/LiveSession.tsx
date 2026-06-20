@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { NotaAppNav } from "@/components/NotaAppNav";
+import { PresenceIndicator } from "@/components/PresenceIndicator";
 import { SessionControls } from "@/components/SessionControls";
 import type { SpotifyNowPlaying, SpotifyStatus } from "@/lib/spotify";
 import type { Phase, SessionConfig, SessionState } from "@/types/session";
@@ -89,6 +90,8 @@ export function LiveSession({
       <header className="flex flex-col items-center gap-3 text-center">
         <NotaAppNav />
       </header>
+
+      <PresenceIndicator />
 
       <div className="grid grid-cols-1 gap-4 text-sm text-zinc-700 md:grid-cols-3">
           <div className="flex min-h-32 flex-col rounded-sm bg-zinc-50 p-5">

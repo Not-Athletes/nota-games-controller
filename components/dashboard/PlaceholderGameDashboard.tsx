@@ -1,6 +1,7 @@
 "use client";
 
 import { NotaAppNav } from "@/components/NotaAppNav";
+import { PresenceIndicator } from "@/components/PresenceIndicator";
 import { usePlaceholderGameState } from "@/contexts/PlaceholderGameStateContext";
 import { useSessionController } from "@/contexts/SessionControllerContext";
 import type { SessionContext } from "@/lib/placeholderGame/types";
@@ -86,6 +87,8 @@ export function PlaceholderGameDashboard() {
       <div className="rounded-sm border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
         Scores are placeholder until live data is connected.
       </div>
+
+      <PresenceIndicator />
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard label="Players" value={totals.players} />

@@ -1,16 +1,16 @@
 "use client";
 
+import { SessionOrchestrationProvider } from "@/components/providers/SessionOrchestrationProvider";
 import { PlaceholderGameStateProvider } from "@/contexts/PlaceholderGameStateContext";
-import { RosterProvider } from "@/contexts/RosterContext";
 import { SessionControllerProvider } from "@/contexts/SessionControllerContext";
 import type { ReactNode } from "react";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <SessionControllerProvider>
-      <RosterProvider>
+      <SessionOrchestrationProvider>
         <PlaceholderGameStateProvider>{children}</PlaceholderGameStateProvider>
-      </RosterProvider>
+      </SessionOrchestrationProvider>
     </SessionControllerProvider>
   );
 }

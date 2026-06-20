@@ -1,7 +1,10 @@
 "use client";
 
 import { NotaAppNav } from "@/components/NotaAppNav";
-import { RosterSetup } from "@/components/roster/RosterSetup";
+import { PresenceIndicator } from "@/components/PresenceIndicator";
+import { SessionJoinStatus } from "@/components/SessionJoinStatus";
+import { SessionPlayersTable } from "@/components/roster/SessionPlayersTable";
+import { SessionIdDisplay } from "@/components/SessionIdDisplay";
 
 export function PlayersPage() {
   return (
@@ -9,7 +12,10 @@ export function PlayersPage() {
       <header className="flex justify-center">
         <NotaAppNav />
       </header>
-      <RosterSetup />
+      <SessionIdDisplay />
+      <SessionJoinStatus />
+      <PresenceIndicator />
+      <SessionPlayersTable />
     </div>
   );
 }

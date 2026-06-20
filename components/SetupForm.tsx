@@ -7,6 +7,8 @@ import type { SetupInput } from "@/types/session";
 type SetupFormProps = {
   initialValues: SetupInput;
   onStart: (config: SetupInput) => void;
+  startDisabled?: boolean;
+  startDisabledReason?: string;
 };
 
 type ErrorMap = Partial<Record<keyof SetupSchema, string>>;
@@ -70,7 +72,12 @@ function Field({
   );
 }
 
-export function SetupForm({ initialValues, onStart }: SetupFormProps) {
+export function SetupForm({
+  initialValues,
+  onStart,
+  startDisabled = false,
+  startDisabledReason,
+}: SetupFormProps) {
   const [formValues, setFormValues] = useState<SetupInput>(initialValues);
   const [errors, setErrors] = useState<ErrorMap>({});
 
@@ -229,10 +236,14 @@ export function SetupForm({ initialValues, onStart }: SetupFormProps) {
 
       <button
         type="submit"
-        className="rounded-sm bg-[#1DB954] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#18a449]"
+        disabled={startDisabled}
+        className="rounded-sm bg-[#1DB954] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#18a449] disabled:cursor-not-allowed disabled:bg-zinc-300"
       >
-        Start Session
+        Start workout
       </button>
+      {startDisabled && startDisabledReason ? (
+        <p className="text-sm text-zinc-500">{startDisabledReason}</p>
+      ) : null}
     </form>
   );
 }

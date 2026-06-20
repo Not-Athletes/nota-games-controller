@@ -12,6 +12,7 @@ import {
 import confetti from "canvas-confetti";
 import { AudioCues } from "@/lib/audio";
 import { publishGameState } from "@/lib/gameState/publish";
+import { gameSessionManager } from "@/lib/session/gameSessionManager";
 import {
   AUTO_NEXT_THRESHOLD_MS,
   DEFAULT_SETUP,
@@ -237,6 +238,8 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
       } else {
         audioCuesRef.current.stopAll();
       }
+
+      void gameSessionManager.end();
     },
     [clearTicker, setSpotifyVolume, updateSessionState]
   );
@@ -300,6 +303,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
           ...prev,
           isPaused: true,
         }));
+        void gameSessionManager.syncFromPhase("passBreak", true);
       };
 
       if (current.phase === "work") {
@@ -463,6 +467,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
         endedAtMs: undefined,
       }));
       startTicker();
+      void gameSessionManager.syncFromPhase("work", false);
     },
     [setSpotifyVolume, startTicker, updateSessionState]
   );
@@ -476,6 +481,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
     phaseEndTimeRef.current = null;
     audioCuesRef.current.stopAll();
     updateSessionState(() => INITIAL_SESSION_STATE);
+    gameSessionManager.reset();
   }, [clearTicker, updateSessionState]);
 
   const resumeNextPass = useCallback(async () => {
@@ -501,6 +507,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
         isPaused: false,
       }));
       startTicker();
+      void gameSessionManager.syncFromPhase("work", false);
     } finally {
       advancingRef.current = false;
     }
