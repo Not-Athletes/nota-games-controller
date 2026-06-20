@@ -1,22 +1,11 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
-import type { NextApiRequest, NextApiResponse } from "next";
+import { NextResponse } from "next/server";
 
 const REST_AUDIO_PATTERN = /^rest_audio_(\d+)\.mp3$/;
 const DEFAULT_REST_CUE_PATH = "/audio/rest/rest_audio_0.mp3";
 
-type RestCuesResponse = {
-  restCues: string[];
-};
-
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<RestCuesResponse | { error: string }>
-) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+export async function GET() {
   try {
     const audioDirectory = path.join(process.cwd(), "public", "audio", "rest");
     const entries = await readdir(audioDirectory, { withFileTypes: true });
@@ -33,11 +22,11 @@ export default async function handler(
       .sort((a, b) => a.index - b.index)
       .map((entry) => `/audio/rest/${entry.name}`);
 
-    return res.status(200).json({
+    return NextResponse.json({
       restCues: restCues.length > 0 ? restCues : [DEFAULT_REST_CUE_PATH],
     });
   } catch (error) {
     console.warn("Failed to discover rest cues", error);
-    return res.status(200).json({ restCues: [DEFAULT_REST_CUE_PATH] });
+    return NextResponse.json({ restCues: [DEFAULT_REST_CUE_PATH] });
   }
 }

@@ -1,4 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import { NextRequest, NextResponse } from "next/server";
 import { gameStatePayloadSchema } from "@/lib/gameState/schema";
 import type { GameStatePayload } from "@/lib/gameState/types";
 
@@ -16,24 +16,26 @@ async function forwardToWebhook(payload: GameStatePayload) {
   });
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<GameStatePayload | { ok: boolean } | { error: string }>
-) {
-  if (req.method === "GET") {
-    if (!latestSnapshot) {
-      return res.status(404).json({ error: "No game state yet" });
-    }
-    return res.status(200).json(latestSnapshot);
+export async function GET() {
+  if (!latestSnapshot) {
+    return NextResponse.json({ error: "No game state yet" }, { status: 404 });
   }
 
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  return NextResponse.json(latestSnapshot);
+}
+
+export async function POST(request: NextRequest) {
+  let body: unknown;
+
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid game state payload" }, { status: 400 });
   }
 
-  const parsed = gameStatePayloadSchema.safeParse(req.body);
+  const parsed = gameStatePayloadSchema.safeParse(body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid game state payload" });
+    return NextResponse.json({ error: "Invalid game state payload" }, { status: 400 });
   }
 
   latestSnapshot = parsed.data;
@@ -44,5 +46,5 @@ export default async function handler(
     console.warn("Game state webhook forward failed", error);
   }
 
-  return res.status(200).json({ ok: true });
+  return NextResponse.json({ ok: true });
 }

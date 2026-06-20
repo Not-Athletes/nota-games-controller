@@ -1,22 +1,11 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
-import type { NextApiRequest, NextApiResponse } from "next";
+import { NextResponse } from "next/server";
 
 const TEN_SECONDS_LEFT_AUDIO_PATTERN = /^ten_seconds_left_(\d+)\.mp3$/;
 const DEFAULT_TEN_SECONDS_LEFT_CUE_PATH = "/audio/ten_seconds_left/ten_seconds_left_01.mp3";
 
-type TenSecondsLeftCuesResponse = {
-  tenSecondsLeftCues: string[];
-};
-
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<TenSecondsLeftCuesResponse | { error: string }>
-) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+export async function GET() {
   try {
     const audioDirectory = path.join(process.cwd(), "public", "audio", "ten_seconds_left");
     const entries = await readdir(audioDirectory, { withFileTypes: true });
@@ -33,14 +22,12 @@ export default async function handler(
       .sort((a, b) => a.index - b.index)
       .map((entry) => `/audio/ten_seconds_left/${entry.name}`);
 
-    return res.status(200).json({
+    return NextResponse.json({
       tenSecondsLeftCues:
-        tenSecondsLeftCues.length > 0
-          ? tenSecondsLeftCues
-          : [DEFAULT_TEN_SECONDS_LEFT_CUE_PATH],
+        tenSecondsLeftCues.length > 0 ? tenSecondsLeftCues : [DEFAULT_TEN_SECONDS_LEFT_CUE_PATH],
     });
   } catch (error) {
     console.warn("Failed to discover ten seconds left cues", error);
-    return res.status(200).json({ tenSecondsLeftCues: [DEFAULT_TEN_SECONDS_LEFT_CUE_PATH] });
+    return NextResponse.json({ tenSecondsLeftCues: [DEFAULT_TEN_SECONDS_LEFT_CUE_PATH] });
   }
 }

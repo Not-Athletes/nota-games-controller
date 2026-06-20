@@ -47,7 +47,6 @@ const INITIAL_STATE = {
 
 export const useSessionStore = create<SessionStore>((set) => ({
   ...INITIAL_STATE,
-  sessionId: readPersistedSessionId(),
   setSessionId: (sessionId) => {
     persistSessionId(sessionId);
     set({ sessionId });
@@ -78,3 +77,11 @@ export const sessionStore = {
   touchPresence: () => useSessionStore.getState().touchPresence(),
   reset: () => useSessionStore.getState().reset(),
 };
+
+/** Restore persisted session id after client mount (avoids SSR hydration mismatch). */
+export function hydrateSessionStoreFromStorage() {
+  const sessionId = readPersistedSessionId();
+  if (sessionId && !useSessionStore.getState().sessionId) {
+    useSessionStore.setState({ sessionId });
+  }
+}

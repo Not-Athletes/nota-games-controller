@@ -1,8 +1,6 @@
 "use client";
 
 import { NotaAppNav } from "@/components/NotaAppNav";
-import { PresenceIndicator } from "@/components/PresenceIndicator";
-import { SessionJoinStatus } from "@/components/SessionJoinStatus";
 import { SessionPlayersTable } from "@/components/roster/SessionPlayersTable";
 import { SessionIdDisplay } from "@/components/SessionIdDisplay";
 
@@ -13,8 +11,6 @@ export function PlayersPage() {
         <NotaAppNav />
       </header>
       <SessionIdDisplay />
-      <SessionJoinStatus />
-      <PresenceIndicator />
       <SessionPlayersTable />
     </div>
   );

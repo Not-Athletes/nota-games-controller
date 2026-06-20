@@ -7,8 +7,12 @@ import {
 } from "@/lib/api/dashboard/schemas";
 import { ApiError, apiRequest } from "@/services/api-client";
 
-/** Cached after the first 404 — this route is optional on older backends. */
+/** Cached after the first missing-route response — this route is optional on older backends. */
 let participantsListAvailable: boolean | null = null;
+
+function isParticipantsRouteUnavailable(error: unknown) {
+  return error instanceof ApiError && (error.status === 404 || error.status === 500);
+}
 
 async function fetchParticipantsResponse(sessionId: string) {
   if (participantsListAvailable === false) {
@@ -24,7 +28,7 @@ async function fetchParticipantsResponse(sessionId: string) {
     participantsListAvailable = true;
     return response;
   } catch (error) {
-    if (error instanceof ApiError && error.status === 404) {
+    if (isParticipantsRouteUnavailable(error)) {
       participantsListAvailable = false;
       return null;
     }

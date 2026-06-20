@@ -1,6 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { clearSpotifySession } from "@/lib/server/spotify-session";
-import { getValidSpotifyAccessToken } from "@/lib/server/spotify-auth";
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 
 type NowPlayingResponse = {
   trackName: string;
@@ -12,29 +11,25 @@ type NowPlayingResponse = {
   progressMs?: number;
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+export async function GET() {
+  const session = await auth();
 
-  const validToken = await getValidSpotifyAccessToken(req, res);
-  if (!validToken?.accessToken) {
-    clearSpotifySession(res);
-    return res.status(401).json({ error: "No valid Spotify session found" });
+  if (!session?.accessToken || session.error) {
+    return NextResponse.json({ error: "No valid Spotify session found" }, { status: 401 });
   }
 
   const response = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
     headers: {
-      Authorization: `Bearer ${validToken.accessToken}`,
+      Authorization: `Bearer ${session.accessToken}`,
     },
   });
 
   if (response.status === 204) {
-    return res.status(200).json({ nowPlaying: null });
+    return NextResponse.json({ nowPlaying: null });
   }
 
   if (!response.ok) {
-    return res.status(200).json({ nowPlaying: null });
+    return NextResponse.json({ nowPlaying: null });
   }
 
   const payload = (await response.json()) as {
@@ -52,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   };
 
   if (!payload.item?.name) {
-    return res.status(200).json({ nowPlaying: null });
+    return NextResponse.json({ nowPlaying: null });
   }
 
   const nowPlaying: NowPlayingResponse = {
@@ -67,5 +62,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     progressMs: payload.progress_ms,
   };
 
-  return res.status(200).json({ nowPlaying });
+  return NextResponse.json({ nowPlaying });
 }
