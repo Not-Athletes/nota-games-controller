@@ -53,8 +53,6 @@ export const participantService = {
     const response = await fetchParticipantsResponse(sessionId);
     if (!response) return [];
 
-    return response.participants
-      .map((row) => participantRowToConnectedPlayer(row))
-      .filter((player): player is ConnectedPlayer => player !== null);
+    return response.participants.map((row) => participantRowToConnectedPlayer(row));
   },
 };

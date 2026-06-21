@@ -15,11 +15,6 @@ type SessionConnectProps = {
   enabled: boolean;
 };
 
-function truncateSessionId(sessionId: string) {
-  if (sessionId.length <= 12) return sessionId;
-  return `${sessionId.slice(0, 8)}…${sessionId.slice(-4)}`;
-}
-
 export function SessionConnect({
   setupValues,
   workVolume,
@@ -84,11 +79,15 @@ export function SessionConnect({
         isOpen
           ? isActive
             ? "Live — workout in progress"
-            : "Open — phones can join on the Players tab"
+            : "Live — phones can join on the Players tab"
           : "Not connected"
       }
-      detail={sessionId ? truncateSessionId(sessionId) : undefined}
-      icon={<Gamepad2 className="h-8 w-8 text-zinc-600" strokeWidth={1.75} />}
+      icon={
+        <Gamepad2
+          className={`h-8 w-8 ${isOpen ? "text-[#1DB954]" : "text-zinc-600"}`}
+          strokeWidth={1.75}
+        />
+      }
       connected={isOpen}
       connectLabel="Create session"
       disconnectLabel="End session"

@@ -23,7 +23,7 @@ export function SessionPlayersTable() {
       </div>
 
       <p className="mt-1 text-sm text-zinc-600">
-        Phones join by scanning the session QR or entering the session ID. Players appear here
+        Phones join by scanning the session QR on the Players tab. Players appear here
         automatically and stay in the session until it ends.
       </p>
 

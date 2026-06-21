@@ -22,7 +22,6 @@ export function useSessionRealtime() {
       unsubscribe = undefined;
 
       const cleanup = await subscribeToSession(sessionId!, {
-        onStatusChange: (status) => sessionStore.setStatus(status),
         onLeaderboardUpdate: (entries) => sessionStore.setLeaderboard(entries),
         onPresenceUpdate: (players) => sessionStore.setConnectedPlayers(players),
       });

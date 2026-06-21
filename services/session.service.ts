@@ -5,7 +5,7 @@ import {
   sessionRecordSchema,
   sessionStatePatchSchema,
   type CreateSessionRequest,
-  type SessionStatus,
+  type SessionStatePatch,
 } from "@/lib/api/dashboard/schemas";
 
 export const sessionService = {
@@ -17,16 +17,8 @@ export const sessionService = {
     }, sessionRecordSchema);
   },
 
-  transitionState(sessionId: string, status: SessionStatus) {
-    if (status === "draft") {
-      return Promise.resolve();
-    }
-
-    const payload = parseDashboardApi(
-      sessionStatePatchSchema,
-      { status },
-      "session state patch"
-    );
+  patchState(sessionId: string, patch: SessionStatePatch) {
+    const payload = parseDashboardApi(sessionStatePatchSchema, patch, "session state patch");
     return apiRequest<void>(`/dashboard/sessions/${sessionId}/state`, {
       method: "PATCH",
       body: JSON.stringify(payload),

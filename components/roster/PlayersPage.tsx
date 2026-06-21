@@ -2,7 +2,7 @@
 
 import { NotaAppNav } from "@/components/NotaAppNav";
 import { SessionPlayersTable } from "@/components/roster/SessionPlayersTable";
-import { SessionIdDisplay } from "@/components/SessionIdDisplay";
+import { SessionQrCode } from "@/components/SessionQrCode";
 
 export function PlayersPage() {
   return (
@@ -10,7 +10,7 @@ export function PlayersPage() {
       <header className="flex justify-center">
         <NotaAppNav />
       </header>
-      <SessionIdDisplay />
+      <SessionQrCode />
       <SessionPlayersTable />
     </div>
   );

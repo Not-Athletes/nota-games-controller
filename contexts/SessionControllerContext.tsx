@@ -303,7 +303,6 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
           ...prev,
           isPaused: true,
         }));
-        void gameSessionManager.syncFromPhase("passBreak", true);
       };
 
       if (current.phase === "work") {
@@ -467,7 +466,6 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
         endedAtMs: undefined,
       }));
       startTicker();
-      void gameSessionManager.syncFromPhase("work", false);
     },
     [setSpotifyVolume, startTicker, updateSessionState]
   );
@@ -507,7 +505,6 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
         isPaused: false,
       }));
       startTicker();
-      void gameSessionManager.syncFromPhase("work", false);
     } finally {
       advancingRef.current = false;
     }

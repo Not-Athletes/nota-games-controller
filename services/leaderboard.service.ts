@@ -11,6 +11,6 @@ export const leaderboardService = {
       undefined,
       leaderboardResponseSchema
     );
-    return response.entries;
+    return response.leaderboard;
   },
 };

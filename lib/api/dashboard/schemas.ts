@@ -8,12 +8,7 @@ import {
 
 /** Matches the NOTA game engine dashboard + realtime contract. */
 
-export const apiSessionStatusSchema = z.enum([
-  "active",
-  "paused",
-  "pass_break",
-  "ended",
-]);
+export const apiSessionStatusSchema = z.enum(["active", "paused", "ended"]);
 
 /** Local-only status before the session is started on the backend. */
 export const sessionStatusSchema = z.union([
@@ -43,8 +38,31 @@ export const sessionRecordSchema = z
   })
   .passthrough();
 
+export const backendGamePhaseSchema = z.enum(["work", "rest", "passBreak", "complete"]);
+
+export const backendGameStateSchema = z.object({
+  phase: backendGamePhaseSchema,
+  currentStation: z.number().int(),
+  currentRound: z.number().int(),
+  currentPass: z.number().int(),
+  timeRemaining: z.number(),
+  isRunning: z.boolean(),
+  isPaused: z.boolean(),
+  completedIntervals: z.number().int(),
+  totalIntervals: z.number().int(),
+});
+
 export const sessionStatePatchSchema = z.object({
-  status: apiSessionStatusSchema,
+  status: apiSessionStatusSchema.optional(),
+  phase: backendGamePhaseSchema.optional(),
+  currentStation: z.number().int().optional(),
+  currentRound: z.number().int().optional(),
+  currentPass: z.number().int().optional(),
+  timeRemaining: z.number().optional(),
+  isRunning: z.boolean().optional(),
+  isPaused: z.boolean().optional(),
+  completedIntervals: z.number().int().optional(),
+  totalIntervals: z.number().int().optional(),
 });
 
 export const sessionStateResponseSchema = z.object({
@@ -54,28 +72,43 @@ export const sessionStateResponseSchema = z.object({
   endedAt: z.string().nullable(),
 });
 
+function normalizeLeaderboardResponse(payload: unknown): unknown {
+  const normalized = normalizeDashboardPayload(payload);
+  if (!normalized || typeof normalized !== "object") return normalized;
+
+  const record = { ...(normalized as Record<string, unknown>) };
+  if (!record.leaderboard && Array.isArray(record.entries)) {
+    record.leaderboard = record.entries;
+  }
+
+  return record;
+}
+
 export const leaderboardEntrySchema = z.object({
   rank: z.number().int(),
   playerId: z.string().min(1),
   playerName: z.string().min(1),
-  teamId: z.string().nullable(),
-  teamName: z.string().nullable(),
-  duoId: z.string().nullable(),
-  duoName: z.string().nullable(),
+  teamId: z.string().nullable().optional().default(null),
+  teamName: z.string().nullable().optional(),
+  duoId: z.string().nullable().optional().default(null),
+  duoName: z.string().nullable().optional(),
   totalXp: z.number(),
-  overallRank: z.number().int(),
+  overallRank: z.number().int().optional(),
   duoTotalXp: z.number().optional(),
   duoRank: z.number().int().nullable().optional(),
-  passXp: z.number(),
-  currentPassRank: z.number().int().nullable(),
+  passXp: z.number().optional(),
+  currentPassRank: z.number().int().nullable().optional(),
 });
 
-export const leaderboardResponseSchema = z.object({
-  sessionId: z.string().min(1),
-  pass: z.number().int().nullable(),
-  updatedAt: z.number(),
-  entries: z.array(leaderboardEntrySchema),
-});
+export const leaderboardResponseSchema = z.preprocess(
+  normalizeLeaderboardResponse,
+  z.object({
+    sessionId: z.string().min(1),
+    pass: z.number().int().nullable().optional(),
+    updatedAt: z.number().optional(),
+    leaderboard: z.array(leaderboardEntrySchema),
+  })
+);
 
 export const realtimeLeaderboardEntrySchema = z.object({
   playerId: z.string().min(1),
@@ -104,9 +137,8 @@ export const connectedPlayerSchema = z.preprocess(
 export const sessionStateChangePayloadSchema = z.preprocess(
   normalizeRealtimePayload,
   z.object({
-    sessionId: z.string().min(1),
-    status: apiSessionStatusSchema,
     timestamp: timestampSchema.optional().default(0),
+    state: backendGameStateSchema,
   })
 );
 
@@ -162,6 +194,8 @@ export const dashboardApiErrorSchema = z.object({
     .optional(),
 });
 
+export type SessionStatePatch = z.infer<typeof sessionStatePatchSchema>;
+export type BackendGameState = z.infer<typeof backendGameStateSchema>;
 export type ApiSessionStatus = z.infer<typeof apiSessionStatusSchema>;
 export type SessionStatus = z.infer<typeof sessionStatusSchema>;
 export type TeamFormat = z.infer<typeof teamFormatSchema>;
@@ -196,18 +230,15 @@ export function normalizeParticipantRow(
 
 export function participantRowToConnectedPlayer(
   row: z.infer<typeof participantRowSchema>
-): ConnectedPlayer | null {
-  if (!row.joinedAt) return null;
-
-  const joinedAt = Date.parse(row.joinedAt);
-  if (Number.isNaN(joinedAt)) return null;
+): ConnectedPlayer {
+  const joinedAtMs = row.joinedAt ? Date.parse(row.joinedAt) : Date.now();
 
   return {
     playerId: row.playerId,
     playerName: row.playerName,
     teamId: row.teamId ?? null,
     duoId: row.duoId ?? null,
-    joinedAt,
+    joinedAt: Number.isNaN(joinedAtMs) ? Date.now() : joinedAtMs,
   };
 }
 

@@ -6,13 +6,12 @@ import {
   sessionStateChangePayloadSchema,
   type ConnectedPlayer,
   type LeaderboardEntry,
-  type SessionStatus,
 } from "@/lib/api/dashboard/schemas";
+import { gameSessionManager } from "@/lib/session/gameSessionManager";
 import { sessionStore } from "@/stores/sessionStore";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type SessionRealtimeHandlers = {
-  onStatusChange: (status: SessionStatus) => void;
   onLeaderboardUpdate: (entries: LeaderboardEntry[]) => void;
   onPresenceUpdate: (players: ConnectedPlayer[]) => void;
 };
@@ -64,7 +63,7 @@ export async function subscribeToSession(
     .on("broadcast", { event: "session_state_change" }, ({ payload }) => {
       const data = parseRealtimePayload(sessionStateChangePayloadSchema, payload, "session_state_change");
       if (data) {
-        handlers.onStatusChange(data.status);
+        void gameSessionManager.applyRemoteGameState(data.state);
       }
     });
 

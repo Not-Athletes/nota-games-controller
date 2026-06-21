@@ -1,4 +1,5 @@
 import type { GameStatePayload } from "@/lib/gameState/types";
+import { gameSessionManager } from "@/lib/session/gameSessionManager";
 
 const ENDPOINT = "/api/game-state";
 const MIN_INTERVAL_MS = 750;
@@ -74,4 +75,6 @@ export function publishGameState(payload: GameStatePayload) {
 
   pending = payload;
   void flush();
+
+  gameSessionManager.syncGameState(payload);
 }
