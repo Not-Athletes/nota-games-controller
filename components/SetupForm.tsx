@@ -203,8 +203,8 @@ export function SetupForm({
           </div>
           <p className="mt-1 text-xs leading-relaxed text-zinc-500">
             {formValues.spotifyEnabled
-              ? "Playlist shuffles during work; volume drops on rest and cues."
-              : "No music. Timers, air horn, rest cues, and buzzers still run."}
+              ? "Playlist shuffles during work; volume drops on rest."
+              : "No music. Session timers run silently."}
           </p>
           <label className="mt-4 flex flex-col gap-2">
             <span

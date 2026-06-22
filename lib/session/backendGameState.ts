@@ -64,7 +64,10 @@ export function storeStatusFromBackendState(state: BackendGameState): SessionSta
   return "active";
 }
 
-export function backendGameStateToSessionState(state: BackendGameState): SessionState {
+export function backendGameStateToSessionState(
+  state: BackendGameState,
+  prev?: SessionState
+): SessionState {
   return {
     phase: state.phase,
     currentStation: state.currentStation,
@@ -75,7 +78,8 @@ export function backendGameStateToSessionState(state: BackendGameState): Session
     isPaused: state.isPaused,
     completedIntervals: state.completedIntervals,
     totalIntervals: state.totalIntervals,
-    endedAtMs: state.sessionEnded || state.phase === "complete" ? Date.now() : undefined,
+    startedAtMs: prev?.startedAtMs,
+    endedAtMs: state.sessionEnded || state.phase === "complete" ? Date.now() : prev?.endedAtMs,
   };
 }
 

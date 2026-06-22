@@ -56,7 +56,7 @@ export function LiveSession({
   onGoHome,
   onToggleSpotifyEnabled,
 }: LiveSessionProps) {
-  const [nowMs, setNowMs] = useState(0);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
     if (!state.startedAtMs || state.endedAtMs) return;
@@ -157,7 +157,7 @@ export function LiveSession({
                 <p className="mt-1 text-xs leading-relaxed text-zinc-500">
                   {config.spotifyEnabled
                     ? "Playlist on work, quieter on rest."
-                    : "Cues and timers only—no music."}
+                    : "Timers only—no music."}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -206,7 +206,7 @@ export function LiveSession({
                 </p>
                 <p className="truncate text-xs text-zinc-600">
                   {!isMusicOn
-                    ? "Timers and audio cues only"
+                    ? "Timers only"
                     : nowPlaying
                       ? `${nowPlaying.artistName} - ${nowPlaying.albumName}`
                       : "Spotify"}

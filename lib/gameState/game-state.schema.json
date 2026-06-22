@@ -135,7 +135,7 @@
         },
         "spotifyEnabled": {
           "type": "boolean",
-          "description": "When false, no playlist plays even if connected and a URL is set. Timers and audio cues still run."
+          "description": "When false, no playlist plays even if connected and a URL is set. Session timers still run."
         }
       }
     }
