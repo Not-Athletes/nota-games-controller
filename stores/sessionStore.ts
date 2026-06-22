@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { LeaderboardEntry } from "@/types/leaderboard";
-import type { ConnectedPlayer, SessionStatus } from "@/types/session-api";
+import type { BackendGameState, ConnectedPlayer, SessionStatus } from "@/types/session-api";
 
 export type RealtimeChannelStatus = "idle" | "connecting" | "subscribed" | "error";
 
@@ -9,12 +9,14 @@ type SessionStore = {
   status: SessionStatus;
   connectedPlayers: ConnectedPlayer[];
   leaderboard: LeaderboardEntry[];
+  remoteGameState: BackendGameState | null;
   realtimeScoresStatus: RealtimeChannelStatus;
   lastPresenceAt?: number;
   setSessionId: (sessionId: string | undefined) => void;
   setStatus: (status: SessionStatus) => void;
   setConnectedPlayers: (players: ConnectedPlayer[]) => void;
   setLeaderboard: (entries: LeaderboardEntry[]) => void;
+  setRemoteGameState: (state: BackendGameState | null) => void;
   setRealtimeScoresStatus: (status: RealtimeChannelStatus) => void;
   touchPresence: () => void;
   reset: () => void;
@@ -41,6 +43,7 @@ const INITIAL_STATE = {
   status: "draft" as SessionStatus,
   connectedPlayers: [] as ConnectedPlayer[],
   leaderboard: [] as LeaderboardEntry[],
+  remoteGameState: null as BackendGameState | null,
   realtimeScoresStatus: "idle" as RealtimeChannelStatus,
   lastPresenceAt: undefined as number | undefined,
 };
@@ -54,6 +57,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
   setStatus: (status) => set({ status }),
   setConnectedPlayers: (connectedPlayers) => set({ connectedPlayers }),
   setLeaderboard: (leaderboard) => set({ leaderboard: leaderboard ?? [] }),
+  setRemoteGameState: (remoteGameState) => set({ remoteGameState }),
   setRealtimeScoresStatus: (realtimeScoresStatus) => set({ realtimeScoresStatus }),
   touchPresence: () => set({ lastPresenceAt: Date.now() }),
   reset: () => {
@@ -72,6 +76,8 @@ export const sessionStore = {
     useSessionStore.getState().setConnectedPlayers(players),
   setLeaderboard: (entries: LeaderboardEntry[]) =>
     useSessionStore.getState().setLeaderboard(entries),
+  setRemoteGameState: (state: BackendGameState | null) =>
+    useSessionStore.getState().setRemoteGameState(state),
   setRealtimeScoresStatus: (status: RealtimeChannelStatus) =>
     useSessionStore.getState().setRealtimeScoresStatus(status),
   touchPresence: () => useSessionStore.getState().touchPresence(),

@@ -3,9 +3,11 @@ import {
   createSessionRequestSchema,
   parseDashboardApi,
   sessionRecordSchema,
+  sessionStatePatchResponseSchema,
   sessionStatePatchSchema,
   type CreateSessionRequest,
   type SessionStatePatch,
+  type SessionStatePatchResponse,
 } from "@/lib/api/dashboard/schemas";
 
 export const sessionService = {
@@ -19,9 +21,13 @@ export const sessionService = {
 
   patchState(sessionId: string, patch: SessionStatePatch) {
     const payload = parseDashboardApi(sessionStatePatchSchema, patch, "session state patch");
-    return apiRequest<void>(`/dashboard/sessions/${sessionId}/state`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    });
+    return apiRequest<SessionStatePatchResponse>(
+      `/dashboard/sessions/${sessionId}/state`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      },
+      sessionStatePatchResponseSchema
+    );
   },
 };

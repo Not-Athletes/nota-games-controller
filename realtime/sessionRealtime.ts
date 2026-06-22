@@ -63,7 +63,7 @@ export async function subscribeToSession(
     .on("broadcast", { event: "session_state_change" }, ({ payload }) => {
       const data = parseRealtimePayload(sessionStateChangePayloadSchema, payload, "session_state_change");
       if (data) {
-        void gameSessionManager.applyRemoteGameState(data.state);
+        gameSessionManager.applyRemoteGameState(data);
       }
     });
 
@@ -73,7 +73,7 @@ export async function subscribeToSession(
     .channel(`session:${sessionId}:scores`)
     .on("broadcast", { event: "leaderboard_update" }, ({ payload }) => {
       const data = parseRealtimePayload(leaderboardUpdatePayloadSchema, payload, "leaderboard_update");
-      if (data && data.leaderboard.length > 0) {
+      if (data) {
         handlers.onLeaderboardUpdate(data.leaderboard.map(realtimeEntryToLeaderboardEntry));
       }
     })

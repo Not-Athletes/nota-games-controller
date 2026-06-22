@@ -41,6 +41,8 @@ export const sessionRecordSchema = z
 export const backendGamePhaseSchema = z.enum(["work", "rest", "passBreak", "complete"]);
 
 export const backendGameStateSchema = z.object({
+  sensorActive: z.boolean().optional().default(false),
+  sessionEnded: z.boolean().optional().default(false),
   phase: backendGamePhaseSchema,
   currentStation: z.number().int(),
   currentRound: z.number().int(),
@@ -181,6 +183,59 @@ export const participantsListResponseSchema = z.preprocess(
   })
 );
 
+export const sessionStatePatchResponseSchema = z.preprocess(
+  normalizeDashboardPayload,
+  z.object({
+    updated: z.boolean().optional(),
+    gameState: sessionStateChangePayloadSchema.nullable().optional(),
+  })
+);
+
+export const addParticipantRequestSchema = z.object({
+  playerId: z.string().min(1).optional(),
+  playerName: z.string().min(1),
+  teamId: z.string().nullable().optional(),
+  duoId: z.string().nullable().optional(),
+});
+
+export const participantAssignmentSchema = z.object({
+  participantId: z.string().min(1),
+  teamId: z.string().nullable(),
+  duoId: z.string().nullable().optional(),
+});
+
+export const bulkAssignParticipantsRequestSchema = z.object({
+  assignments: z.array(participantAssignmentSchema).min(1),
+});
+
+export const assignParticipantsResponseSchema = z.object({
+  assigned: z.number().int(),
+});
+
+export const bulkAssignParticipantsResponseSchema = z.preprocess(
+  normalizeDashboardPayload,
+  z.object({
+    assigned: z.number().int(),
+    participants: z.array(participantRowSchema),
+  })
+);
+
+export const singleAssignParticipantRequestSchema = z.object({
+  teamId: z.string().nullable(),
+  duoId: z.string().nullable().optional(),
+});
+
+export const singleAssignParticipantResponseSchema = z.preprocess(
+  normalizeDashboardPayload,
+  z.object({
+    id: z.string().min(1),
+    playerId: z.string().min(1),
+    playerName: z.string().min(1),
+    teamId: z.string().nullable().optional().default(null),
+    duoId: z.string().nullable().optional().default(null),
+  })
+);
+
 export const dashboardApiErrorSchema = z.object({
   error: z.string(),
   detail: z.string().optional(),
@@ -206,6 +261,7 @@ export type LeaderboardEntry = z.infer<typeof leaderboardEntrySchema>;
 export type ConnectedPlayer = z.infer<typeof connectedPlayerSchema>;
 export type LeaderboardUpdatePayload = z.infer<typeof leaderboardUpdatePayloadSchema>;
 export type SessionStateChangePayload = z.infer<typeof sessionStateChangePayloadSchema>;
+export type SessionStatePatchResponse = z.infer<typeof sessionStatePatchResponseSchema>;
 export type PresenceUpdatePayload = z.infer<typeof presenceUpdatePayloadSchema>;
 export type RealtimeLeaderboardEntry = z.infer<typeof realtimeLeaderboardEntrySchema>;
 export type SessionParticipant = {

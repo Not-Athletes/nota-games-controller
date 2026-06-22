@@ -1,5 +1,6 @@
 import { toBackendSessionConfig } from "@/lib/api/dashboard/sessionConfig";
 import { mergeConnectedPlayers } from "@/lib/api/dashboard/schemas";
+import type { SessionStateChangePayload } from "@/lib/api/dashboard/schemas";
 import { CURRENT_EVENT } from "@/lib/config/event";
 import { isNotaApiConfigured } from "@/lib/config/api";
 import type { GameStatePayload } from "@/lib/gameState/types";
@@ -18,9 +19,20 @@ import { sessionStore } from "@/stores/sessionStore";
 import type { SessionConfig } from "@/types/session";
 import type { SessionStatePatch } from "@/lib/api/dashboard/schemas";
 
+type RemoteGameStateEvent = SessionStateChangePayload & {
+  fromPatchResponse?: boolean;
+};
+
+type RemoteGameStateListener = (event: RemoteGameStateEvent) => void;
+
+let remoteGameStateListener: RemoteGameStateListener | null = null;
+
 configureGameStateSync(async (sessionId, patch) => {
-  await sessionService.patchState(sessionId, patch);
+  const response = await sessionService.patchState(sessionId, patch);
   updateStoreStatusFromPatch(patch);
+  if (response?.gameState) {
+    applyRemoteGameStatePayload(response.gameState, { fromPatchResponse: true });
+  }
 });
 
 function updateStoreStatusFromPatch(patch: SessionStatePatch) {
@@ -37,6 +49,15 @@ function updateStoreStatusFromPatch(patch: SessionStatePatch) {
   }
 }
 
+function applyRemoteGameStatePayload(
+  payload: SessionStateChangePayload,
+  options: { fromPatchResponse?: boolean } = {}
+) {
+  sessionStore.setStatus(storeStatusFromBackendState(payload.state));
+  sessionStore.setRemoteGameState(payload.state);
+  remoteGameStateListener?.({ ...payload, fromPatchResponse: options.fromPatchResponse });
+}
+
 /**
  * Conductor for backend session lifecycle. The workout clock stays in
  * SessionControllerContext; this layer issues REST commands and
@@ -45,6 +66,15 @@ function updateStoreStatusFromPatch(patch: SessionStatePatch) {
 export const gameSessionManager = {
   isEnabled() {
     return isNotaApiConfigured();
+  },
+
+  onRemoteGameState(listener: RemoteGameStateListener | null) {
+    remoteGameStateListener = listener;
+    return () => {
+      if (remoteGameStateListener === listener) {
+        remoteGameStateListener = null;
+      }
+    };
   },
 
   async createSession(config: SessionConfig) {
@@ -72,7 +102,10 @@ export const gameSessionManager = {
 
     if (sessionId && isNotaApiConfigured() && status !== "ended") {
       try {
-        await sessionService.patchState(sessionId, { status: "ended" });
+        const response = await sessionService.patchState(sessionId, { status: "ended" });
+        if (response?.gameState) {
+          applyRemoteGameStatePayload(response.gameState);
+        }
       } catch (error) {
         console.warn("Failed to end backend session", error);
         throw error;
@@ -100,20 +133,25 @@ export const gameSessionManager = {
     await syncGameStateImmediate(sessionId, payload);
   },
 
-  applyRemoteGameState(state: Parameters<typeof storeStatusFromBackendState>[0]) {
-    sessionStore.setStatus(storeStatusFromBackendState(state));
+  applyRemoteGameState(payload: SessionStateChangePayload) {
+    applyRemoteGameStatePayload(payload);
   },
 
   async end() {
-    const { sessionId } = sessionStore.getState();
+    const { sessionId, status } = sessionStore.getState();
+    if (status === "ended") return;
+
     if (!sessionId || !isNotaApiConfigured()) {
       sessionStore.setStatus("ended");
       return;
     }
 
     try {
-      await sessionService.patchState(sessionId, { status: "ended", phase: "complete" });
+      const response = await sessionService.patchState(sessionId, { status: "ended" });
       sessionStore.setStatus("ended");
+      if (response?.gameState) {
+        applyRemoteGameStatePayload(response.gameState);
+      }
     } catch (error) {
       console.warn("Failed to end backend session", error);
     }
@@ -153,3 +191,5 @@ export const gameSessionManager = {
     }
   },
 };
+
+export type { RemoteGameStateEvent, RemoteGameStateListener };

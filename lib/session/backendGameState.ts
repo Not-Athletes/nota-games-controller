@@ -1,6 +1,6 @@
-import type { SessionStatePatch } from "@/lib/api/dashboard/schemas";
+import type { BackendGameState, SessionStatePatch } from "@/lib/api/dashboard/schemas";
 import type { GameStatePayload } from "@/lib/gameState/types";
-import type { Phase } from "@/types/session";
+import type { Phase, SessionState } from "@/types/session";
 import type { SessionStatus } from "@/types/session-api";
 
 const BACKEND_PHASES = new Set<Phase>(["work", "rest", "passBreak", "complete"]);
@@ -54,17 +54,29 @@ export function toBackendStatePatch(payload: GameStatePayload): SessionStatePatc
   };
 }
 
-export function storeStatusFromBackendState(state: {
-  phase: "work" | "rest" | "passBreak" | "complete";
-  isPaused: boolean;
-}): SessionStatus {
-  if (state.phase === "complete") {
+export function storeStatusFromBackendState(state: BackendGameState): SessionStatus {
+  if (state.sessionEnded || state.phase === "complete") {
     return "ended";
   }
   if (state.phase === "passBreak" || state.isPaused) {
     return "paused";
   }
   return "active";
+}
+
+export function backendGameStateToSessionState(state: BackendGameState): SessionState {
+  return {
+    phase: state.phase,
+    currentStation: state.currentStation,
+    currentRound: state.currentRound,
+    currentPass: state.currentPass,
+    timeRemaining: state.timeRemaining,
+    isRunning: state.isRunning,
+    isPaused: state.isPaused,
+    completedIntervals: state.completedIntervals,
+    totalIntervals: state.totalIntervals,
+    endedAtMs: state.sessionEnded || state.phase === "complete" ? Date.now() : undefined,
+  };
 }
 
 export function isBackendSyncPhase(phase: Phase) {

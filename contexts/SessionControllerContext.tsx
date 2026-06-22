@@ -12,6 +12,7 @@ import {
 import confetti from "canvas-confetti";
 import { AudioCues } from "@/lib/audio";
 import { publishGameState } from "@/lib/gameState/publish";
+import { backendGameStateToSessionState } from "@/lib/session/backendGameState";
 import { gameSessionManager } from "@/lib/session/gameSessionManager";
 import {
   AUTO_NEXT_THRESHOLD_MS,
@@ -214,7 +215,10 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
   }, []);
 
   const markComplete = useCallback(
-    ({ playOutro = true }: { playOutro?: boolean } = {}) => {
+    ({
+      playOutro = true,
+      syncBackend = true,
+    }: { playOutro?: boolean; syncBackend?: boolean } = {}) => {
       const config = sessionConfigRef.current;
       if (!config) return;
 
@@ -239,7 +243,9 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
         audioCuesRef.current.stopAll();
       }
 
-      void gameSessionManager.end();
+      if (syncBackend) {
+        void gameSessionManager.end();
+      }
     },
     [clearTicker, setSpotifyVolume, updateSessionState]
   );
@@ -421,6 +427,27 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
       }
     }, 250);
   }, [advancePhase, setSpotifyVolume, updateSessionState]);
+
+  useEffect(() => {
+    return gameSessionManager.onRemoteGameState(({ state, fromPatchResponse }) => {
+      if (state.sessionEnded || state.phase === "complete") {
+        if (sessionStateRef.current.phase !== "complete") {
+          markComplete({ playOutro: false, syncBackend: false });
+        }
+        return;
+      }
+
+      if (fromPatchResponse || sessionStateRef.current.phase === "idle") {
+        return;
+      }
+
+      if (sessionStateRef.current.isRunning && !sessionStateRef.current.isPaused) {
+        return;
+      }
+
+      updateSessionState(() => backendGameStateToSessionState(state));
+    });
+  }, [markComplete, updateSessionState]);
 
   const startSession = useCallback(
     async (config: SessionConfig) => {

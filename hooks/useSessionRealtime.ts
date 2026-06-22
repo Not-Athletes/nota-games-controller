@@ -32,7 +32,7 @@ export function useSessionRealtime() {
       }
 
       unsubscribe = cleanup;
-      void gameSessionManager.refreshConnectedPlayers();
+      void gameSessionManager.refreshLeaderboard();
     }
 
     void connect();
@@ -57,7 +57,7 @@ export function usePresencePolling() {
   const sessionId = useSessionStore((state) => state.sessionId);
 
   useEffect(() => {
-    if (!sessionId || !isNotaApiConfigured()) return;
+    if (!sessionId || !isNotaApiConfigured() || isSupabaseConfigured()) return;
 
     void gameSessionManager.refreshConnectedPlayers();
     const interval = setInterval(() => {
