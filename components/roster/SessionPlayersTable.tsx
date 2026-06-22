@@ -11,7 +11,7 @@ function formatJoinedAt(value: string | null) {
 }
 
 export function SessionPlayersTable() {
-  const { players, loading, hasSession } = useSessionParticipants();
+  const { players, hasSession } = useSessionParticipants();
 
   return (
     <section className="rounded-sm bg-zinc-50 p-5">
@@ -33,8 +33,6 @@ export function SessionPlayersTable() {
             ? "Create a session on the Controller tab first."
             : "Connect the NOTA API to enable live player join."}
         </p>
-      ) : loading && players.length === 0 ? (
-        <p className="mt-4 text-sm text-zinc-500">Loading players…</p>
       ) : players.length === 0 ? (
         <p className="mt-4 text-sm text-zinc-500">Waiting for the first phone to join…</p>
       ) : (

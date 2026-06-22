@@ -1,16 +1,12 @@
 "use client";
 
-import {
-  useLeaderboardPolling,
-  usePresencePolling,
-  useSessionRealtime,
-} from "@/hooks/useSessionRealtime";
+import { useSessionRealtime } from "@/hooks/useSessionRealtime";
 import { hydrateSessionStoreFromStorage } from "@/stores/sessionStore";
 import { useEffect, type ReactNode } from "react";
 
 /**
- * Mounts realtime subscriptions (and API polling fallback) for the active session.
- * Pages stay unaware of Supabase channels.
+ * Mounts Supabase Realtime for the active session (handoff: REST for commands,
+ * Realtime for live scores/presence/state — no polling during a session).
  */
 export function SessionOrchestrationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -18,7 +14,5 @@ export function SessionOrchestrationProvider({ children }: { children: ReactNode
   }, []);
 
   useSessionRealtime();
-  usePresencePolling();
-  useLeaderboardPolling();
   return children;
 }

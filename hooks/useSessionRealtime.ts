@@ -8,6 +8,9 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { subscribeToSession } from "@/realtime/sessionRealtime";
 import { sessionStore, useSessionStore } from "@/stores/sessionStore";
 
+/** Tracks per-session initial REST leaderboard load (handoff: fetch once, then Realtime only). */
+const initialLeaderboardLoadedFor = new Set<string>();
+
 export function useSessionRealtime() {
   const sessionId = useSessionStore((state) => state.sessionId);
 
@@ -32,7 +35,11 @@ export function useSessionRealtime() {
       }
 
       unsubscribe = cleanup;
-      void gameSessionManager.refreshLeaderboard();
+
+      if (isNotaApiConfigured() && !initialLeaderboardLoadedFor.has(sessionId!)) {
+        initialLeaderboardLoadedFor.add(sessionId!);
+        void gameSessionManager.refreshLeaderboard();
+      }
     }
 
     void connect();
@@ -50,36 +57,11 @@ export function useSessionRealtime() {
       authSubscription?.data.subscription.unsubscribe();
     };
   }, [sessionId]);
-}
-
-/** Poll joined participants when Realtime is unavailable or as a REST fallback. */
-export function usePresencePolling() {
-  const sessionId = useSessionStore((state) => state.sessionId);
 
   useEffect(() => {
-    if (!sessionId || !isNotaApiConfigured() || isSupabaseConfigured()) return;
-
-    void gameSessionManager.refreshConnectedPlayers();
-    const interval = setInterval(() => {
-      void gameSessionManager.refreshConnectedPlayers();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [sessionId]);
-}
-
-/** Initial leaderboard fetch when API is configured but realtime is not. */
-export function useLeaderboardPolling() {
-  const sessionId = useSessionStore((state) => state.sessionId);
-
-  useEffect(() => {
-    if (!sessionId || !isNotaApiConfigured() || isSupabaseConfigured()) return;
-
-    void gameSessionManager.refreshLeaderboard();
-    const interval = setInterval(() => {
-      void gameSessionManager.refreshLeaderboard();
-    }, 5000);
-
-    return () => clearInterval(interval);
+    if (!sessionId) return;
+    return () => {
+      initialLeaderboardLoadedFor.delete(sessionId);
+    };
   }, [sessionId]);
 }

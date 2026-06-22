@@ -1,5 +1,4 @@
 import { toBackendSessionConfig } from "@/lib/api/dashboard/sessionConfig";
-import { mergeConnectedPlayers } from "@/lib/api/dashboard/schemas";
 import type { SessionStateChangePayload } from "@/lib/api/dashboard/schemas";
 import { CURRENT_EVENT } from "@/lib/config/event";
 import { isNotaApiConfigured } from "@/lib/config/api";
@@ -12,8 +11,6 @@ import {
 } from "@/lib/session/gameStateSync";
 import { storeStatusFromBackendState, toBackendStatePatch } from "@/lib/session/backendGameState";
 import { leaderboardService } from "@/services/leaderboard.service";
-import { participantService } from "@/services/participant.service";
-import { ApiError } from "@/services/api-client";
 import { sessionService } from "@/services/session.service";
 import { sessionStore } from "@/stores/sessionStore";
 import type { SessionConfig } from "@/types/session";
@@ -27,11 +24,19 @@ type RemoteGameStateListener = (event: RemoteGameStateEvent) => void;
 
 let remoteGameStateListener: RemoteGameStateListener | null = null;
 
+function patchResponseGameState(
+  response: Awaited<ReturnType<typeof sessionService.patchState>> | undefined
+) {
+  if (!response || !("gameState" in response)) return null;
+  return response.gameState ?? null;
+}
+
 configureGameStateSync(async (sessionId, patch) => {
   const response = await sessionService.patchState(sessionId, patch);
   updateStoreStatusFromPatch(patch);
-  if (response?.gameState) {
-    applyRemoteGameStatePayload(response.gameState, { fromPatchResponse: true });
+  const gameState = patchResponseGameState(response);
+  if (gameState) {
+    applyRemoteGameStatePayload(gameState, { fromPatchResponse: true });
   }
 });
 
@@ -89,8 +94,6 @@ export const gameSessionManager = {
 
       sessionStore.setSessionId(session.id);
       sessionStore.setStatus("draft");
-
-      await gameSessionManager.refreshConnectedPlayers();
     } catch (error) {
       console.warn("Failed to create backend session", error);
       throw error;
@@ -103,8 +106,9 @@ export const gameSessionManager = {
     if (sessionId && isNotaApiConfigured() && status !== "ended") {
       try {
         const response = await sessionService.patchState(sessionId, { status: "ended" });
-        if (response?.gameState) {
-          applyRemoteGameStatePayload(response.gameState);
+        const gameState = patchResponseGameState(response);
+        if (gameState) {
+          applyRemoteGameStatePayload(gameState);
         }
       } catch (error) {
         console.warn("Failed to end backend session", error);
@@ -114,6 +118,16 @@ export const gameSessionManager = {
 
     resetGameStateSync();
     sessionStore.reset();
+  },
+
+  async ensureSessionActive() {
+    const { sessionId, status } = sessionStore.getState();
+    if (!sessionId || !isNotaApiConfigured() || status === "active" || status === "ended") {
+      return;
+    }
+
+    await sessionService.patchState(sessionId, { status: "active" });
+    sessionStore.setStatus("active");
   },
 
   syncGameState(payload: GameStatePayload) {
@@ -149,8 +163,9 @@ export const gameSessionManager = {
     try {
       const response = await sessionService.patchState(sessionId, { status: "ended" });
       sessionStore.setStatus("ended");
-      if (response?.gameState) {
-        applyRemoteGameStatePayload(response.gameState);
+      const gameState = patchResponseGameState(response);
+      if (gameState) {
+        applyRemoteGameStatePayload(gameState);
       }
     } catch (error) {
       console.warn("Failed to end backend session", error);
@@ -171,23 +186,6 @@ export const gameSessionManager = {
       sessionStore.setLeaderboard(leaderboard);
     } catch (error) {
       console.warn("Failed to refresh leaderboard", error);
-    }
-  },
-
-  async refreshConnectedPlayers() {
-    const { sessionId, connectedPlayers } = sessionStore.getState();
-    if (!sessionId || !isNotaApiConfigured()) return;
-
-    try {
-      const joined = await participantService.fetchJoinedParticipants(sessionId);
-      if (joined.length === 0) return;
-
-      sessionStore.setConnectedPlayers(mergeConnectedPlayers(connectedPlayers, joined));
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 404) {
-        return;
-      }
-      console.warn("Failed to refresh connected players", error);
     }
   },
 };

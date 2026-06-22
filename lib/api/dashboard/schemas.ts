@@ -6,7 +6,7 @@ import {
   normalizeRealtimePayload,
 } from "@/lib/api/dashboard/normalizeRealtime";
 
-/** Matches the NOTA game engine dashboard + realtime contract. */
+/** Matches the NOTA game engine dashboard + realtime contract (strict handoff). */
 
 export const apiSessionStatusSchema = z.enum(["active", "paused", "ended"]);
 
@@ -185,10 +185,13 @@ export const participantsListResponseSchema = z.preprocess(
 
 export const sessionStatePatchResponseSchema = z.preprocess(
   normalizeDashboardPayload,
-  z.object({
-    updated: z.boolean().optional(),
-    gameState: sessionStateChangePayloadSchema.nullable().optional(),
-  })
+  z.union([
+    z.object({
+      updated: z.boolean().optional(),
+      gameState: sessionStateChangePayloadSchema.nullable().optional(),
+    }),
+    sessionStateResponseSchema,
+  ])
 );
 
 export const addParticipantRequestSchema = z.object({

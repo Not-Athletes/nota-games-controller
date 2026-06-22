@@ -1,3 +1,14 @@
+/**
+ * Supabase Realtime subscriptions per backend handoff.
+ *
+ * Channels (controller + scoreboard):
+ * - session:{id}:state  → session_state_change (controller publishes via REST PATCH)
+ * - session:{id}:scores → leaderboard_update, presence_update (engine publishes after /motion)
+ *
+ * Motion batches are HTTP-only (POST /sessions/:id/motion) — not a Realtime channel.
+ * Do not subscribe to session:{id}:presence (mobile tracks; engine rebroadcasts via scores).
+ */
+
 import { getSupabaseBrowserClient, syncSupabaseRealtimeAuth } from "@/lib/supabase/browser";
 import {
   leaderboardUpdatePayloadSchema,
@@ -10,13 +21,12 @@ import {
 import { gameSessionManager } from "@/lib/session/gameSessionManager";
 import { sessionStore } from "@/stores/sessionStore";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import type { ZodType } from "zod";
 
 export type SessionRealtimeHandlers = {
   onLeaderboardUpdate: (entries: LeaderboardEntry[]) => void;
   onPresenceUpdate: (players: ConnectedPlayer[]) => void;
 };
-
-import type { ZodType } from "zod";
 
 function parseRealtimePayload<T>(schema: ZodType<T>, payload: unknown, event: string): T | null {
   const parsed = schema.safeParse(payload);
@@ -78,11 +88,9 @@ export async function subscribeToSession(
       }
     })
     .on("broadcast", { event: "presence_update" }, ({ payload }) => {
-      console.info("[realtime] presence_update received", payload);
       const data = parseRealtimePayload(presenceUpdatePayloadSchema, payload, "presence_update");
       if (data) {
         sessionStore.touchPresence();
-        console.info("[realtime] presence_update parsed", data.connectedPlayers.length, "players");
         handlers.onPresenceUpdate(data.connectedPlayers);
       }
     });

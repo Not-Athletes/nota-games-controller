@@ -66,15 +66,16 @@ async function flush() {
  * POST the current game state to `/api/game-state`.
  * Critical changes (phase, station, round, pass, etc.) publish immediately;
  * timer-only updates are throttled (~750ms) to avoid flooding.
+ *
+ * Backend PATCH (phone sensor activation) always runs — it must not be gated
+ * by the local publish throttle.
  */
 export function publishGameState(payload: GameStatePayload) {
   const now = Date.now();
-  if (!shouldPublishNow(payload, now)) {
-    return;
+  if (shouldPublishNow(payload, now)) {
+    pending = payload;
+    void flush();
   }
-
-  pending = payload;
-  void flush();
 
   gameSessionManager.syncGameState(payload);
 }

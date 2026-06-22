@@ -1,6 +1,6 @@
 import type { SessionStatePatch } from "@/lib/api/dashboard/schemas";
 import type { GameStatePayload } from "@/lib/gameState/types";
-import { toBackendStatePatch } from "@/lib/session/backendGameState";
+import { toBackendStatePatch, isSensorActivationPatch } from "@/lib/session/backendGameState";
 
 const MIN_INTERVAL_MS = 750;
 
@@ -64,6 +64,11 @@ export function queueGameStateSync(sessionId: string, payload: GameStatePayload)
 
   const patch = toBackendStatePatch(payload);
   if (!patch) return;
+
+  if (isSensorActivationPatch(patch)) {
+    void syncGameStateImmediate(sessionId, payload);
+    return;
+  }
 
   const now = Date.now();
   if (!shouldSyncNow(patch, now)) {

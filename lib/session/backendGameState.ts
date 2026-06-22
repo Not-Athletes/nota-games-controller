@@ -82,3 +82,8 @@ export function backendGameStateToSessionState(state: BackendGameState): Session
 export function isBackendSyncPhase(phase: Phase) {
   return BACKEND_PHASES.has(phase);
 }
+
+/** PATCH that should turn on phone motion capture (handoff: requires phase + isRunning). */
+export function isSensorActivationPatch(patch: SessionStatePatch) {
+  return patch.status === "active" && patch.phase === "work" && patch.isRunning === true;
+}

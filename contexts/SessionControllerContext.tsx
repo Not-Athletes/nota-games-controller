@@ -124,16 +124,21 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
     }
   }, []);
 
-  const updateSessionState = useCallback((updater: (prev: SessionState) => SessionState) => {
-    const next = updater(sessionStateRef.current);
-    sessionStateRef.current = next;
-    setSessionState(next);
-    publishGameState({
-      timestamp: Date.now(),
-      state: next,
-      config: sessionConfigRef.current,
-    });
-  }, []);
+  const updateSessionState = useCallback(
+    (updater: (prev: SessionState) => SessionState, options?: { sync?: boolean }) => {
+      const next = updater(sessionStateRef.current);
+      sessionStateRef.current = next;
+      setSessionState(next);
+      if (options?.sync !== false) {
+        publishGameState({
+          timestamp: Date.now(),
+          state: next,
+          config: sessionConfigRef.current,
+        });
+      }
+    },
+    []
+  );
 
   const refreshSpotifyStatus = useCallback((error?: string) => {
     setSpotifyStatus({
@@ -460,21 +465,28 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
       audioCuesRef.current.resetTenSecondsLeftShuffle();
       audioCuesRef.current.stopAll();
 
+      if (gameSessionManager.isEnabled()) {
+        await gameSessionManager.ensureSessionActive();
+      }
+
       const totalIntervals = getTotalIntervals(config);
       const firstWorkSeconds = getPhaseDuration("work", config);
-      updateSessionState(() => ({
-        phase: "work",
-        currentStation: 1,
-        currentRound: 1,
-        currentPass: 1,
-        timeRemaining: firstWorkSeconds,
-        isRunning: false,
-        isPaused: false,
-        completedIntervals: 0,
-        totalIntervals,
-        startedAtMs: undefined,
-        endedAtMs: undefined,
-      }));
+      updateSessionState(
+        () => ({
+          phase: "work",
+          currentStation: 1,
+          currentRound: 1,
+          currentPass: 1,
+          timeRemaining: firstWorkSeconds,
+          isRunning: false,
+          isPaused: false,
+          completedIntervals: 0,
+          totalIntervals,
+          startedAtMs: undefined,
+          endedAtMs: undefined,
+        }),
+        { sync: false }
+      );
       tenSecondsCuePlayedRef.current = null;
 
       setSpotifyVolume(config.workVolume);
@@ -492,6 +504,15 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
         startedAtMs: Date.now(),
         endedAtMs: undefined,
       }));
+
+      if (gameSessionManager.isEnabled()) {
+        await gameSessionManager.syncGameStateNow({
+          timestamp: Date.now(),
+          state: sessionStateRef.current,
+          config,
+        });
+      }
+
       startTicker();
     },
     [setSpotifyVolume, startTicker, updateSessionState]
@@ -531,6 +552,13 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
         isRunning: true,
         isPaused: false,
       }));
+      if (gameSessionManager.isEnabled()) {
+        await gameSessionManager.syncGameStateNow({
+          timestamp: Date.now(),
+          state: sessionStateRef.current,
+          config,
+        });
+      }
       startTicker();
     } finally {
       advancingRef.current = false;

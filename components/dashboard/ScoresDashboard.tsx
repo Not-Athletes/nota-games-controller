@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { NotaAppNav } from "@/components/NotaAppNav";
 import { useSessionController } from "@/contexts/SessionControllerContext";
-import { gameSessionManager } from "@/lib/session/gameSessionManager";
+import { isNotaApiConfigured } from "@/lib/config/api";
 import type { LeaderboardEntry } from "@/types/leaderboard";
 import { useSessionStore } from "@/stores/sessionStore";
 
@@ -73,11 +73,6 @@ export function ScoresDashboard() {
   const leaderboard = useSessionStore((state) => state.leaderboard);
   const { sessionState, sessionConfig } = useSessionController();
 
-  useEffect(() => {
-    if (!sessionId || !gameSessionManager.isEnabled()) return;
-    void gameSessionManager.refreshLeaderboard();
-  }, [sessionId]);
-
   const sessionStats = useMemo(() => {
     if (sessionConfig && sessionState.phase !== "idle") {
       return {
@@ -133,7 +128,7 @@ export function ScoresDashboard() {
         <NotaAppNav />
       </header>
 
-      {!sessionId && gameSessionManager.isEnabled() ? (
+      {!sessionId && isNotaApiConfigured() ? (
         <p className="rounded-sm bg-zinc-50 p-5 text-sm text-zinc-600">
           Create a session on the Controller tab to see live scores.
         </p>
