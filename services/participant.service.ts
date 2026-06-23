@@ -70,7 +70,6 @@ export const participantService = {
       playerName: string;
       playerId?: string;
       teamId?: string | null;
-      duoId?: string | null;
     }
   ) {
     const payload = parseDashboardApi(addParticipantRequestSchema, body, "add participant request");
@@ -93,7 +92,6 @@ export const participantService = {
     assignments: Array<{
       participantId: string;
       teamId: string | null;
-      duoId?: string | null;
     }>
   ) {
     const payload = parseDashboardApi(
@@ -114,7 +112,7 @@ export const participantService = {
   async assignParticipant(
     sessionId: string,
     participantId: string,
-    body: { teamId: string | null; duoId?: string | null }
+    body: { teamId: string | null }
   ) {
     const payload = parseDashboardApi(
       singleAssignParticipantRequestSchema,

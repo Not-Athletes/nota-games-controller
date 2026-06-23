@@ -53,7 +53,6 @@ export function normalizeConnectedPlayer(value: unknown): unknown {
     playerId: typeof playerId === "string" ? playerId : String(playerId ?? ""),
     playerName: typeof playerName === "string" ? playerName : "Player",
     teamId: record.teamId ?? null,
-    duoId: record.duoId ?? null,
     joinedAt: record.joinedAt ?? record.joined_at ?? 0,
   };
 }

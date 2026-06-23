@@ -92,12 +92,8 @@ export const leaderboardEntrySchema = z.object({
   playerName: z.string().min(1),
   teamId: z.string().nullable().optional().default(null),
   teamName: z.string().nullable().optional(),
-  duoId: z.string().nullable().optional().default(null),
-  duoName: z.string().nullable().optional(),
   totalXp: z.number(),
   overallRank: z.number().int().optional(),
-  duoTotalXp: z.number().optional(),
-  duoRank: z.number().int().nullable().optional(),
   passXp: z.number().optional(),
   currentPassRank: z.number().int().nullable().optional(),
 });
@@ -131,7 +127,6 @@ export const connectedPlayerSchema = z.preprocess(
     playerId: z.string().min(1),
     playerName: z.string().min(1),
     teamId: z.string().nullable().optional().default(null),
-    duoId: z.string().nullable().optional().default(null),
     joinedAt: timestampSchema.optional().default(0),
   })
 );
@@ -168,11 +163,8 @@ export const participantRowSchema = z.object({
   playerName: z.string().min(1),
   teamId: z.string().nullable().optional().default(null),
   teamName: z.string().nullable().optional(),
-  duoId: z.string().nullable().optional().default(null),
-  duoName: z.string().nullable().optional(),
   joinedAt: z.string().nullable().optional(),
   teams: z.object({ name: z.string() }).optional().nullable(),
-  duos: z.object({ name: z.string() }).optional().nullable(),
 });
 
 export const participantsListResponseSchema = z.preprocess(
@@ -198,13 +190,11 @@ export const addParticipantRequestSchema = z.object({
   playerId: z.string().min(1).optional(),
   playerName: z.string().min(1),
   teamId: z.string().nullable().optional(),
-  duoId: z.string().nullable().optional(),
 });
 
 export const participantAssignmentSchema = z.object({
   participantId: z.string().min(1),
   teamId: z.string().nullable(),
-  duoId: z.string().nullable().optional(),
 });
 
 export const bulkAssignParticipantsRequestSchema = z.object({
@@ -225,7 +215,6 @@ export const bulkAssignParticipantsResponseSchema = z.preprocess(
 
 export const singleAssignParticipantRequestSchema = z.object({
   teamId: z.string().nullable(),
-  duoId: z.string().nullable().optional(),
 });
 
 export const singleAssignParticipantResponseSchema = z.preprocess(
@@ -235,7 +224,6 @@ export const singleAssignParticipantResponseSchema = z.preprocess(
     playerId: z.string().min(1),
     playerName: z.string().min(1),
     teamId: z.string().nullable().optional().default(null),
-    duoId: z.string().nullable().optional().default(null),
   })
 );
 
@@ -296,7 +284,6 @@ export function participantRowToConnectedPlayer(
     playerId: row.playerId,
     playerName: row.playerName,
     teamId: row.teamId ?? null,
-    duoId: row.duoId ?? null,
     joinedAt: Number.isNaN(joinedAtMs) ? Date.now() : joinedAtMs,
   };
 }
@@ -335,8 +322,6 @@ export function realtimeEntryToLeaderboardEntry(
     playerName: entry.playerName,
     teamId: null,
     teamName: null,
-    duoId: null,
-    duoName: null,
     totalXp: entry.totalXp,
     overallRank: entry.rank,
     passXp: 0,
