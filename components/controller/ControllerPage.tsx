@@ -9,6 +9,7 @@ import { SpotifyConnect } from "@/components/SpotifyConnect";
 import { useSessionController } from "@/contexts/SessionControllerContext";
 import { useNotaAuth } from "@/hooks/useNotaAuth";
 import { useSessionOrchestration } from "@/hooks/useSessionOrchestration";
+import type { SetupInput } from "@/types/session";
 
 export function ControllerPage() {
   const {
@@ -31,6 +32,13 @@ export function ControllerPage() {
   } = useSessionController();
   const { sessionId, backendEnabled } = useSessionOrchestration();
   const notaAuth = useNotaAuth();
+
+  const persistSetupValues = (config: SetupInput) => {
+    setSetupValues(config);
+    localStorage.setItem("nota_class_controller_setup", JSON.stringify(config));
+  };
+
+  const sessionOpen = backendEnabled && Boolean(sessionId);
 
   if (sessionState.phase === "idle") {
     if (notaAuth.requiresAuth && !notaAuth.loading && !notaAuth.authenticated) {
@@ -77,18 +85,23 @@ export function ControllerPage() {
           </div>
 
           <SetupForm
-            initialValues={setupValues}
+            values={setupValues}
+            onValuesChange={persistSetupValues}
+            fieldsDisabled={sessionOpen}
+            fieldsDisabledReason={
+              sessionOpen
+                ? "Workout settings are locked while a session is open. End the session to change them."
+                : undefined
+            }
             startDisabled={backendEnabled && !sessionId}
-            startDisabledReason="Create a session first so phones can join before you start the workout."
+            startDisabledReason="Create a session first so phones can join before you start the session."
             onStart={(config) => {
-              setSetupValues(config);
-              localStorage.setItem("nota_class_controller_setup", JSON.stringify(config));
-              const sessionConfig = {
+              persistSetupValues(config);
+              void startSession({
                 ...config,
                 workVolume,
                 restVolume,
-              };
-              void startSession(sessionConfig);
+              });
             }}
           />
         </div>
