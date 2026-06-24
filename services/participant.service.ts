@@ -1,15 +1,10 @@
 import {
   addParticipantRequestSchema,
-  assignParticipantsResponseSchema,
-  bulkAssignParticipantsRequestSchema,
-  bulkAssignParticipantsResponseSchema,
   normalizeParticipantRow,
   participantRowSchema,
   participantRowToConnectedPlayer,
   participantsListResponseSchema,
   parseDashboardApi,
-  singleAssignParticipantRequestSchema,
-  singleAssignParticipantResponseSchema,
   type ConnectedPlayer,
   type SessionParticipant,
 } from "@/lib/api/dashboard/schemas";
@@ -69,7 +64,6 @@ export const participantService = {
     body: {
       playerName: string;
       playerId?: string;
-      teamId?: string | null;
     }
   ) {
     const payload = parseDashboardApi(addParticipantRequestSchema, body, "add participant request");
@@ -77,55 +71,5 @@ export const participantService = {
       method: "POST",
       body: JSON.stringify(payload),
     }, participantRowSchema);
-  },
-
-  async assignParticipants(sessionId: string) {
-    return apiRequest(
-      `/dashboard/sessions/${sessionId}/participants/assign`,
-      { method: "POST" },
-      assignParticipantsResponseSchema
-    );
-  },
-
-  async bulkAssignParticipants(
-    sessionId: string,
-    assignments: Array<{
-      participantId: string;
-      teamId: string | null;
-    }>
-  ) {
-    const payload = parseDashboardApi(
-      bulkAssignParticipantsRequestSchema,
-      { assignments },
-      "bulk assign participants request"
-    );
-    return apiRequest(
-      `/dashboard/sessions/${sessionId}/participants`,
-      {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-      },
-      bulkAssignParticipantsResponseSchema
-    );
-  },
-
-  async assignParticipant(
-    sessionId: string,
-    participantId: string,
-    body: { teamId: string | null }
-  ) {
-    const payload = parseDashboardApi(
-      singleAssignParticipantRequestSchema,
-      body,
-      "assign participant request"
-    );
-    return apiRequest(
-      `/dashboard/sessions/${sessionId}/participants/${participantId}`,
-      {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-      },
-      singleAssignParticipantResponseSchema
-    );
   },
 };

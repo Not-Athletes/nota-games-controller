@@ -88,7 +88,7 @@ export const gameSessionManager = {
     try {
       const session = await sessionService.createSession({
         title: CURRENT_EVENT.name,
-        teamFormat: "solo",
+        teamFormat: "team",
         config: toBackendSessionConfig(config),
       });
 

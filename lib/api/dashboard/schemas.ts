@@ -189,43 +189,7 @@ export const sessionStatePatchResponseSchema = z.preprocess(
 export const addParticipantRequestSchema = z.object({
   playerId: z.string().min(1).optional(),
   playerName: z.string().min(1),
-  teamId: z.string().nullable().optional(),
 });
-
-export const participantAssignmentSchema = z.object({
-  participantId: z.string().min(1),
-  teamId: z.string().nullable(),
-});
-
-export const bulkAssignParticipantsRequestSchema = z.object({
-  assignments: z.array(participantAssignmentSchema).min(1),
-});
-
-export const assignParticipantsResponseSchema = z.object({
-  assigned: z.number().int(),
-});
-
-export const bulkAssignParticipantsResponseSchema = z.preprocess(
-  normalizeDashboardPayload,
-  z.object({
-    assigned: z.number().int(),
-    participants: z.array(participantRowSchema),
-  })
-);
-
-export const singleAssignParticipantRequestSchema = z.object({
-  teamId: z.string().nullable(),
-});
-
-export const singleAssignParticipantResponseSchema = z.preprocess(
-  normalizeDashboardPayload,
-  z.object({
-    id: z.string().min(1),
-    playerId: z.string().min(1),
-    playerName: z.string().min(1),
-    teamId: z.string().nullable().optional().default(null),
-  })
-);
 
 export const dashboardApiErrorSchema = z.object({
   error: z.string(),
