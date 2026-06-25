@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { NotaAppNav } from "@/components/NotaAppNav";
 import { useSessionController } from "@/contexts/SessionControllerContext";
 import { isNotaApiConfigured } from "@/lib/config/api";
+import { teamDisplayKey } from "@/lib/session/playerTeams";
 import type { LeaderboardEntry } from "@/types/leaderboard";
 import { useSessionStore } from "@/stores/sessionStore";
 
@@ -50,7 +51,7 @@ function getTeamTheme(teamKey: string) {
 }
 
 function teamKey(entry: LeaderboardEntry) {
-  return entry.teamId ?? entry.teamName ?? "unassigned";
+  return teamDisplayKey(entry.teamId, entry.teamName);
 }
 
 function teamLabel(entry: LeaderboardEntry) {

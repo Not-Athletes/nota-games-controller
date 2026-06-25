@@ -11,10 +11,16 @@ import {
 } from "@/lib/session/gameStateSync";
 import { storeStatusFromBackendState, toBackendStatePatch } from "@/lib/session/backendGameState";
 import { leaderboardService } from "@/services/leaderboard.service";
+import { participantService } from "@/services/participant.service";
 import { sessionService } from "@/services/session.service";
 import { sessionStore } from "@/stores/sessionStore";
 import type { SessionConfig } from "@/types/session";
 import type { SessionStatePatch } from "@/lib/api/dashboard/schemas";
+import {
+  hasPlayersMissingTeamRegistry,
+  participantsToTeamLookup,
+} from "@/lib/session/playerTeams";
+import type { ConnectedPlayer } from "@/types/session-api";
 
 type RemoteGameStateEvent = SessionStateChangePayload & {
   fromPatchResponse?: boolean;
@@ -187,6 +193,28 @@ export const gameSessionManager = {
     } catch (error) {
       console.warn("Failed to refresh leaderboard", error);
     }
+  },
+
+  /** Load team names from GET /participants (handoff: resolved Red/Blue via teams.name). */
+  async refreshParticipantTeams() {
+    const { sessionId } = sessionStore.getState();
+    if (!sessionId || !isNotaApiConfigured()) return;
+
+    try {
+      const participants = await participantService.fetchParticipants(sessionId);
+      sessionStore.mergePlayerTeams(participantsToTeamLookup(participants));
+    } catch (error) {
+      console.warn("Failed to refresh participant teams", error);
+    }
+  },
+
+  async refreshParticipantTeamsIfNeeded(connectedPlayers: ConnectedPlayer[]) {
+    const { playerTeams } = sessionStore.getState();
+    if (!hasPlayersMissingTeamRegistry(connectedPlayers, playerTeams)) {
+      return;
+    }
+
+    await this.refreshParticipantTeams();
   },
 };
 

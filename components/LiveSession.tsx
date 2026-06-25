@@ -150,100 +150,75 @@ export function LiveSession({
               {formatSeconds(currentElapsedSeconds)}
             </p>
           </div>
-          <div className="rounded-sm bg-zinc-50 p-5 md:col-span-3">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold tracking-[0.1em] text-zinc-500">SPOTIFY MUSIC</p>
-                <p className="mt-1 text-xs leading-relaxed text-zinc-500">
-                  {config.spotifyEnabled
-                    ? "Playlist on work, quieter on rest."
-                    : "Timers only—no music."}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
+          <div className="flex min-h-32 flex-col rounded-sm bg-zinc-50 p-5 md:col-span-2">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold tracking-[0.1em] text-zinc-500">SPOTIFY MUSIC</p>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   role="switch"
                   aria-checked={config.spotifyEnabled}
                   onClick={() => onToggleSpotifyEnabled(!config.spotifyEnabled)}
-                  className={`relative h-8 w-14 shrink-0 rounded-full transition ${
+                  className={`relative h-7 w-12 shrink-0 rounded-full transition ${
                     config.spotifyEnabled ? "bg-[#1DB954]" : "bg-zinc-300"
                   }`}
                 >
                   <span
-                    className={`absolute top-1 left-1 h-6 w-6 rounded-full bg-white shadow transition ${
-                      config.spotifyEnabled ? "translate-x-6" : "translate-x-0"
+                    className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition ${
+                      config.spotifyEnabled ? "translate-x-5" : "translate-x-0"
                     }`}
                   />
                 </button>
-                <span className="text-sm font-medium text-zinc-800">
+                <span className="text-xs font-medium text-zinc-800">
                   {config.spotifyEnabled ? "On" : "Off"}
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="h-14 w-14 overflow-hidden rounded-sm bg-zinc-100">
+            <div className="mt-auto flex items-center gap-3">
+              <div className="h-10 w-10 shrink-0 overflow-hidden rounded-sm bg-zinc-100">
                 {nowPlaying?.albumArtUrl ? (
                   <Image
                     src={nowPlaying.albumArtUrl}
                     alt={`${nowPlaying.albumName} cover`}
-                    width={56}
-                    height={56}
+                    width={40}
+                    height={40}
                     className="h-full w-full object-cover"
                     unoptimized
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-xs text-zinc-500">
+                  <div className="flex h-full w-full items-center justify-center text-[10px] text-zinc-500">
                     N/A
                   </div>
                 )}
               </div>
-              <div className="min-w-0 flex-1 text-left">
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-zinc-900">
-                  {!isMusicOn
-                    ? "Music off"
-                    : nowPlaying?.trackName ?? "No track playing"}
+                  {!isMusicOn ? "Music off" : nowPlaying?.trackName ?? "No track playing"}
                 </p>
-                <p className="truncate text-xs text-zinc-600">
-                  {!isMusicOn
-                    ? "Timers only"
-                    : nowPlaying
+                {!isMusicOn ? null : (
+                  <p className="truncate text-xs text-zinc-600">
+                    {nowPlaying
                       ? `${nowPlaying.artistName} - ${nowPlaying.albumName}`
                       : "Spotify"}
-                </p>
+                  </p>
+                )}
+                <div className="mt-1 flex items-center gap-1.5 text-[11px] text-zinc-600">
+                  <Image
+                    src={spotifyIconSrc}
+                    alt="Spotify status"
+                    width={12}
+                    height={12}
+                    className="h-3 w-3"
+                  />
+                  <p className="truncate">
+                    {spotifyStatus.authenticated
+                      ? spotifyStatus.playerReady
+                        ? "Connected"
+                        : "Connecting…"
+                      : "Not connected"}
+                  </p>
+                </div>
               </div>
-            </div>
-
-            <div className="mt-3 flex h-8 items-end gap-1">
-              {[8, 16, 12, 20, 10, 18, 14, 22].map((height, idx) => (
-                <div
-                  key={`eq-${idx}`}
-                  className={`w-1 rounded-sm ${
-                    isMusicOn && isSpotifyConnected ? "bg-[#1DB954] animate-pulse" : "bg-zinc-300"
-                  }`}
-                  style={{
-                    height: `${height}px`,
-                    animationDelay: `${idx * 120}ms`,
-                  }}
-                />
-              ))}
-            </div>
-
-            <div className="mt-3 flex items-center justify-end gap-2 text-xs text-zinc-600">
-              <Image
-                src={spotifyIconSrc}
-                alt="Spotify status"
-                width={16}
-                height={16}
-                className="h-4 w-4"
-              />
-              <p>
-                {spotifyStatus.authenticated
-                  ? spotifyStatus.playerReady
-                    ? "Spotify connected"
-                    : "Spotify authenticated, player still connecting"
-                  : "Spotify not connected"}
-              </p>
             </div>
           </div>
       </div>

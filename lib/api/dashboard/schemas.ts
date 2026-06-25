@@ -223,6 +223,7 @@ export type SessionParticipant = {
   id: string;
   playerId: string;
   playerName: string;
+  teamId: string | null;
   teamName: string | null;
   joinedAt: string | null;
 };
@@ -234,6 +235,7 @@ export function normalizeParticipantRow(
     id: row.id,
     playerId: row.playerId,
     playerName: row.playerName,
+    teamId: row.teamId ?? null,
     teamName: row.teamName ?? row.teams?.name ?? null,
     joinedAt: row.joinedAt ?? null,
   };

@@ -17,9 +17,6 @@ export function SessionPlayersTable() {
     <section className="rounded-sm bg-zinc-50 p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">Players</p>
-        {hasSession ? (
-          <p className="text-sm font-semibold tabular-nums text-zinc-800">{players.length} joined</p>
-        ) : null}
       </div>
 
       <p className="mt-1 text-sm text-zinc-600">
