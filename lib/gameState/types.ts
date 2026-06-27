@@ -1,4 +1,19 @@
-import type { SessionConfig, SessionState } from "@/types/session";
+import type { SessionState } from "@/types/session";
+
+/** Flat config published to subscribers — active pass values only (BAU field names). */
+export type PublishedSessionConfig = {
+  workTime: number;
+  restTime: number;
+  restBetweenStationsTime: number;
+  roundsPerStation: number;
+  stations: number;
+  fullSessionPasses: number;
+  maxTrackPlaySeconds: number;
+  workVolume: number;
+  restVolume: number;
+  spotifyEnabled: boolean;
+  spotifyPlaylistUri?: string;
+};
 
 /**
  * Snapshot published on every session update.
@@ -8,5 +23,5 @@ import type { SessionConfig, SessionState } from "@/types/session";
 export type GameStatePayload = {
   timestamp: number;
   state: SessionState;
-  config: SessionConfig | null;
+  config: PublishedSessionConfig | null;
 };

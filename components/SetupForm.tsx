@@ -1,238 +1,259 @@
 "use client";
 
 import { useState } from "react";
+import { Copy, Plus, X } from "lucide-react";
+import { createDefaultPass } from "@/lib/session/config";
 import { setupSchema, type SetupSchema } from "@/lib/validation";
-import type { SetupInput } from "@/types/session";
+import type { SpotifyStatus } from "@/lib/spotify";
+import type { PassConfig, SetupInput } from "@/types/session";
+import { MaxTrackPlayField } from "@/components/MaxTrackPlayField";
+import {
+  PassConfigFields,
+  passErrorsFromZodIssues,
+  type PassFieldErrors,
+} from "@/components/PassConfigFields";
+import { PassTabs } from "@/components/PassTabs";
+import { SpotifySettings } from "@/components/SpotifySettings";
 
 type SetupFormProps = {
-  initialValues: SetupInput;
-  onStart: (config: SetupInput) => void;
+  values: SetupInput;
+  onValuesChange: (values: SetupInput) => void;
+  onContinue: (config: SetupInput) => void;
+  spotifyStatus: SpotifyStatus;
+  onConnectSpotify: () => void;
+  onDisconnectSpotify: () => void;
+  continueDisabled?: boolean;
+  continueDisabledReason?: string;
+  fieldsDisabled?: boolean;
+  fieldsDisabledReason?: string;
 };
 
-type ErrorMap = Partial<Record<keyof SetupSchema, string>>;
+type GlobalErrorMap = Partial<
+  Pick<Record<keyof SetupSchema, string>, "maxTrackPlaySeconds" | "spotifyPlaylistUri">
+>;
 
-function Field({
-  label,
-  description,
-  name,
-  type = "number",
-  value,
-  onChange,
-  error,
-  placeholder,
-  className,
-  disabled = false,
-}: {
-  label: string;
-  description: string;
-  name: keyof SetupInput;
-  type?: "number" | "text";
-  value: string | number;
-  onChange: (name: keyof SetupInput, value: string) => void;
-  error?: string;
-  placeholder?: string;
-  className?: string;
-  disabled?: boolean;
-}) {
-  return (
-    <label
-      className={`flex min-h-36 flex-col rounded-sm p-5 ${
-        disabled ? "bg-zinc-100/80" : "bg-zinc-50"
-      } ${className ?? ""}`}
-    >
-      <span
-        className={`text-xs font-semibold uppercase tracking-[0.1em] ${
-          disabled ? "text-zinc-400" : "text-zinc-500"
-        }`}
-      >
-        {label}
-      </span>
-      <span
-        className={`mt-1 text-xs leading-relaxed ${disabled ? "text-zinc-400" : "text-zinc-500"}`}
-      >
-        {description}
-      </span>
-      <input
-        name={name}
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        disabled={disabled}
-        onChange={(event) => onChange(name, event.target.value)}
-        className={`mt-auto rounded-sm border px-4 py-3 outline-none ring-0 transition ${
-          disabled
-            ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400"
-            : "border-zinc-300 bg-white text-zinc-900 focus:border-zinc-500"
-        }`}
-      />
-      {error ? <span className="mt-2 text-xs text-red-400">{error}</span> : null}
-    </label>
-  );
+function reorderPasses(passes: PassConfig[], fromIndex: number, toIndex: number): PassConfig[] {
+  const next = [...passes];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  return next;
 }
 
-export function SetupForm({ initialValues, onStart }: SetupFormProps) {
-  const [formValues, setFormValues] = useState<SetupInput>(initialValues);
-  const [errors, setErrors] = useState<ErrorMap>({});
+export function SetupForm({
+  values,
+  onValuesChange,
+  onContinue,
+  spotifyStatus,
+  onConnectSpotify,
+  onDisconnectSpotify,
+  continueDisabled = false,
+  continueDisabledReason,
+  fieldsDisabled = false,
+  fieldsDisabledReason,
+}: SetupFormProps) {
+  const [activePassIndex, setActivePassIndex] = useState(0);
+  const [passErrors, setPassErrors] = useState<PassFieldErrors>({});
+  const [globalErrors, setGlobalErrors] = useState<GlobalErrorMap>({});
 
-  const handleChange = (name: keyof SetupInput, value: string) => {
-    setFormValues((prev) => {
-      if (name === "spotifyPlaylistUri") {
-        return { ...prev, [name]: value };
-      }
+  const multiPass = values.passes.length > 1;
+  const activePass = values.passes[activePassIndex] ?? values.passes[0];
 
-      return {
-        ...prev,
-        [name]: Number(value),
-      } as SetupInput;
-    });
+  const updatePass = (index: number, pass: PassConfig) => {
+    const passes = [...values.passes];
+    passes[index] = pass;
+    onValuesChange({ ...values, passes });
   };
 
-  const handleSpotifyEnabledChange = (enabled: boolean) => {
-    setFormValues((prev) => ({ ...prev, spotifyEnabled: enabled }));
+  const updateGlobals = (
+    globals: Pick<SetupInput, "maxTrackPlaySeconds" | "spotifyEnabled" | "spotifyPlaylistUri">
+  ) => {
+    onValuesChange({ ...values, ...globals });
+  };
+
+  const updateSpotify = (
+    spotify: Pick<SetupInput, "spotifyEnabled" | "spotifyPlaylistUri">
+  ) => {
+    onValuesChange({ ...values, ...spotify });
+  };
+
+  const handleAddPass = () => {
+    if (fieldsDisabled) return;
+    const passes = [...values.passes, createDefaultPass()];
+    onValuesChange({ ...values, passes });
+    setActivePassIndex(passes.length - 1);
+  };
+
+  const handleDuplicatePass = () => {
+    if (fieldsDisabled) return;
+    const passes = [...values.passes, { ...activePass }];
+    onValuesChange({ ...values, passes });
+    setActivePassIndex(passes.length - 1);
+  };
+
+  const handleRemovePass = () => {
+    if (fieldsDisabled || values.passes.length <= 1) return;
+    const passes = values.passes.filter((_, index) => index !== activePassIndex);
+    onValuesChange({ ...values, passes });
+    setActivePassIndex(Math.min(activePassIndex, passes.length - 1));
+  };
+
+  const handleReorderPasses = (fromIndex: number, toIndex: number) => {
+    if (fieldsDisabled) return;
+    const passes = reorderPasses(values.passes, fromIndex, toIndex);
+    onValuesChange({ ...values, passes });
+
+    if (activePassIndex === fromIndex) {
+      setActivePassIndex(toIndex);
+    } else if (fromIndex < activePassIndex && toIndex >= activePassIndex) {
+      setActivePassIndex(activePassIndex - 1);
+    } else if (fromIndex > activePassIndex && toIndex <= activePassIndex) {
+      setActivePassIndex(activePassIndex + 1);
+    }
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const parsed = setupSchema.safeParse(formValues);
+    const parsed = setupSchema.safeParse(values);
 
     if (!parsed.success) {
-      const nextErrors: ErrorMap = {};
+      const nextGlobalErrors: GlobalErrorMap = {};
+      let nextPassErrors: PassFieldErrors = {};
+
       for (const issue of parsed.error.issues) {
-        const key = issue.path[0] as keyof SetupSchema;
-        nextErrors[key] = issue.message;
+        if (issue.path[0] === "passes" && typeof issue.path[1] === "number") {
+          if (issue.path[1] === activePassIndex) {
+            nextPassErrors = passErrorsFromZodIssues(parsed.error.issues, activePassIndex);
+          }
+          continue;
+        }
+
+        const key = issue.path[0] as keyof GlobalErrorMap;
+        if (key === "maxTrackPlaySeconds" || key === "spotifyPlaylistUri") {
+          nextGlobalErrors[key] = issue.message;
+        }
       }
-      setErrors(nextErrors);
+
+      if (parsed.error.issues.some((issue) => issue.path[0] === "passes")) {
+        const firstInvalidPass = parsed.error.issues.find(
+          (issue) => issue.path[0] === "passes" && typeof issue.path[1] === "number"
+        )?.path[1];
+
+        if (typeof firstInvalidPass === "number" && firstInvalidPass !== activePassIndex) {
+          setActivePassIndex(firstInvalidPass);
+          nextPassErrors = passErrorsFromZodIssues(parsed.error.issues, firstInvalidPass);
+        }
+      }
+
+      setGlobalErrors(nextGlobalErrors);
+      setPassErrors(nextPassErrors);
       return;
     }
 
-    setErrors({});
-    onStart(parsed.data);
+    setGlobalErrors({});
+    setPassErrors({});
+    onContinue(parsed.data);
   };
 
   return (
     <form onSubmit={handleSubmit} className="flex w-full flex-col gap-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Field
-          label="Work Time"
-          description="Seconds of work in each interval."
-          name="workTime"
-          value={formValues.workTime}
-          onChange={handleChange}
-          error={errors.workTime}
-        />
-        <Field
-          label="Rest Between Rounds"
-          description="Seconds of recovery between rounds at the same station."
-          name="restTime"
-          value={formValues.restTime}
-          onChange={handleChange}
-          error={errors.restTime}
-        />
-        <Field
-          label="Rest Between Stations"
-          description="Seconds of recovery while rotating to the next station."
-          name="restBetweenStationsTime"
-          value={formValues.restBetweenStationsTime}
-          onChange={handleChange}
-          error={errors.restBetweenStationsTime}
-        />
-        <Field
-          label="Rounds Per Station"
-          description="Work rounds completed before rotating."
-          name="roundsPerStation"
-          value={formValues.roundsPerStation}
-          onChange={handleChange}
-          error={errors.roundsPerStation}
-        />
-        <Field
-          label="Number of Stations"
-          description="Stations to rotate through in one full pass."
-          name="stations"
-          value={formValues.stations}
-          onChange={handleChange}
-          error={errors.stations}
-        />
-        <Field
-          label="Full Session Passes"
-          description="Times to repeat all stations & rounds end to end."
-          name="fullSessionPasses"
-          value={formValues.fullSessionPasses}
-          onChange={handleChange}
-          error={errors.fullSessionPasses}
-        />
-        <Field
-          label="Max Song Play Time"
-          description="Seconds before a track auto-advances to the next."
-          name="maxTrackPlaySeconds"
-          value={formValues.maxTrackPlaySeconds}
-          onChange={handleChange}
-          error={errors.maxTrackPlaySeconds}
-        />
-        <div className="flex min-h-36 flex-col rounded-sm bg-zinc-50 p-5 sm:col-span-2 lg:col-span-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">
-              Spotify Music
-            </span>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={formValues.spotifyEnabled}
-                onClick={() => handleSpotifyEnabledChange(!formValues.spotifyEnabled)}
-                className={`relative h-8 w-14 shrink-0 rounded-full transition ${
-                  formValues.spotifyEnabled ? "bg-[#1DB954]" : "bg-zinc-300"
-                }`}
-              >
-                <span
-                  className={`absolute top-1 left-1 h-6 w-6 rounded-full bg-white shadow transition ${
-                    formValues.spotifyEnabled ? "translate-x-6" : "translate-x-0"
-                  }`}
-                />
-              </button>
-              <span className="text-sm font-medium text-zinc-800">
-                {formValues.spotifyEnabled ? "On" : "Off"}
-              </span>
-            </div>
-          </div>
-          <p className="mt-1 text-xs leading-relaxed text-zinc-500">
-            {formValues.spotifyEnabled
-              ? "Playlist shuffles during work; volume drops on rest and cues."
-              : "No music. Timers, air horn, rest cues, and buzzers still run."}
-          </p>
-          <label className="mt-4 flex flex-col gap-2">
-            <span
-              className={`text-xs font-semibold uppercase tracking-[0.1em] ${
-                formValues.spotifyEnabled ? "text-zinc-500" : "text-zinc-400"
-              }`}
+      {fieldsDisabled && fieldsDisabledReason ? (
+        <p className="rounded-sm bg-zinc-100 px-4 py-3 text-sm text-zinc-600">{fieldsDisabledReason}</p>
+      ) : null}
+
+      {multiPass ? (
+        <div className="flex flex-col gap-4">
+          <PassTabs
+            passCount={values.passes.length}
+            activeIndex={activePassIndex}
+            onSelect={setActivePassIndex}
+            onReorder={handleReorderPasses}
+            onAddPass={handleAddPass}
+            disabled={fieldsDisabled}
+          />
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleDuplicatePass}
+              disabled={fieldsDisabled}
+              className="inline-flex items-center gap-1.5 rounded-sm border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Playlist
-            </span>
-            <input
-              name="spotifyPlaylistUri"
-              type="text"
-              value={formValues.spotifyPlaylistUri ?? ""}
-              disabled={!formValues.spotifyEnabled}
-              placeholder="https://open.spotify.com/playlist/…"
-              onChange={(event) => handleChange("spotifyPlaylistUri", event.target.value)}
-              className={`rounded-sm border px-4 py-3 outline-none ring-0 transition ${
-                formValues.spotifyEnabled
-                  ? "border-zinc-300 bg-white text-zinc-900 focus:border-zinc-500"
-                  : "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400"
-              }`}
-            />
-            {errors.spotifyPlaylistUri ? (
-              <span className="text-xs text-red-400">{errors.spotifyPlaylistUri}</span>
-            ) : null}
-          </label>
+              <Copy className="h-4 w-4" strokeWidth={2} />
+              Duplicate pass
+            </button>
+            <button
+              type="button"
+              onClick={handleRemovePass}
+              disabled={fieldsDisabled}
+              className="inline-flex items-center gap-1.5 rounded-sm border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <X className="h-4 w-4" strokeWidth={2} />
+              Remove pass
+            </button>
+          </div>
+
+          <PassConfigFields
+            pass={activePass}
+            onChange={(pass) => updatePass(activePassIndex, pass)}
+            errors={passErrors}
+            disabled={fieldsDisabled}
+          />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center border-b border-zinc-200 pb-1">
+            <button
+              type="button"
+              onClick={handleAddPass}
+              disabled={fieldsDisabled}
+              className="inline-flex items-center gap-1.5 rounded-sm px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2} />
+              Add another pass
+            </button>
+          </div>
+          <PassConfigFields
+            pass={activePass}
+            onChange={(pass) => updatePass(0, pass)}
+            errors={passErrors}
+            disabled={fieldsDisabled}
+          />
+        </div>
+      )}
+
+      <div>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">
+          Session settings
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <SpotifySettings
+            status={spotifyStatus}
+            onConnect={onConnectSpotify}
+            onDisconnect={onDisconnectSpotify}
+            values={values}
+            onChange={updateSpotify}
+            errors={{ spotifyPlaylistUri: globalErrors.spotifyPlaylistUri }}
+            disabled={fieldsDisabled}
+          />
+          <MaxTrackPlayField
+            value={values.maxTrackPlaySeconds}
+            onChange={(maxTrackPlaySeconds) => updateGlobals({ ...values, maxTrackPlaySeconds })}
+            error={globalErrors.maxTrackPlaySeconds}
+            disabled={fieldsDisabled}
+          />
         </div>
       </div>
 
       <button
         type="submit"
-        className="rounded-sm bg-[#1DB954] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#18a449]"
+        disabled={continueDisabled}
+        className="rounded-sm bg-[#1DB954] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#18a449] disabled:cursor-not-allowed disabled:bg-zinc-300"
       >
-        Start Session
+        Continue to review
       </button>
+      {continueDisabled && continueDisabledReason ? (
+        <p className="text-sm text-zinc-500">{continueDisabledReason}</p>
+      ) : null}
     </form>
   );
 }

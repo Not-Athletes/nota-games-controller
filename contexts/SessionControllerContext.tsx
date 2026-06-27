@@ -9,9 +9,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import confetti from "canvas-confetti";
-import { AudioCues } from "@/lib/audio";
 import { publishGameState } from "@/lib/gameState/publish";
+import { toPublishedConfig, withActivePass } from "@/lib/session/config";
+import { gameSessionManager } from "@/lib/session/gameSessionManager";
 import {
   AUTO_NEXT_THRESHOLD_MS,
   DEFAULT_SETUP,
@@ -66,15 +66,32 @@ function readSetupFromStorage(): SetupInput {
     const stored = JSON.parse(raw) as Partial<SetupInput> & { attendees?: unknown };
     const { attendees: _legacyAttendees, ...rest } = stored;
     void _legacyAttendees;
-    return { ...DEFAULT_SETUP, ...rest };
+
+    if (!Array.isArray(rest.passes) || rest.passes.length < 1) {
+      return DEFAULT_SETUP;
+    }
+
+    return {
+      ...DEFAULT_SETUP,
+      ...rest,
+      passes: rest.passes,
+    };
   } catch {
     return DEFAULT_SETUP;
   }
 }
 
+function publishSnapshot(state: SessionState, config: SessionConfig | null) {
+  publishGameState({
+    timestamp: Date.now(),
+    state,
+    config: config ? toPublishedConfig(config) : null,
+  });
+}
+
 /**
- * Lives at the app root so session timers, audio, and Spotify survive
- * navigation between Controller (/), Players (/players), and Scores (/scores).
+ * Lives at the app root so session timers and Spotify survive navigation between
+ * Controller (/), Players (/players), and Scores (/scores).
  */
 export function SessionControllerProvider({ children }: { children: ReactNode }) {
   const [setupValues, setSetupValues] = useState<SetupInput>(readSetupFromStorage);
@@ -87,16 +104,13 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
   });
   const [nowPlaying, setNowPlaying] = useState<SpotifyNowPlaying | null>(null);
 
-  const audioCuesRef = useRef(new AudioCues());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const phaseEndTimeRef = useRef<number | null>(null);
   const advancingRef = useRef(false);
   const sessionStateRef = useRef(sessionState);
   const sessionConfigRef = useRef<SessionConfig | null>(sessionConfig);
   const autoNextHandledTrackRef = useRef<string | null>(null);
-  const tenSecondsCuePlayedRef = useRef<string | null>(null);
-  const buzzerDriverRef = useRef<Promise<void> | null>(null);
-  const buzzerStopRef = useRef(false);
+  const workVolumeDuckedForRef = useRef<string | null>(null);
   const spotifyPlayerReadyRef = useRef(false);
 
   useEffect(() => {
@@ -108,11 +122,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
   }, [spotifyStatus.playerReady]);
 
   useEffect(() => {
-    publishGameState({
-      timestamp: Date.now(),
-      state: sessionStateRef.current,
-      config: sessionConfigRef.current,
-    });
+    publishSnapshot(sessionStateRef.current, sessionConfigRef.current);
   }, []);
 
   const clearTicker = useCallback(() => {
@@ -122,16 +132,17 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
     }
   }, []);
 
-  const updateSessionState = useCallback((updater: (prev: SessionState) => SessionState) => {
-    const next = updater(sessionStateRef.current);
-    sessionStateRef.current = next;
-    setSessionState(next);
-    publishGameState({
-      timestamp: Date.now(),
-      state: next,
-      config: sessionConfigRef.current,
-    });
-  }, []);
+  const updateSessionState = useCallback(
+    (updater: (prev: SessionState) => SessionState, options?: { sync?: boolean }) => {
+      const next = updater(sessionStateRef.current);
+      sessionStateRef.current = next;
+      setSessionState(next);
+      if (options?.sync !== false) {
+        publishSnapshot(next, sessionConfigRef.current);
+      }
+    },
+    []
+  );
 
   const refreshSpotifyStatus = useCallback((error?: string) => {
     setSpotifyStatus({
@@ -148,11 +159,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
   }, []);
 
   const publishCurrentState = useCallback(() => {
-    publishGameState({
-      timestamp: Date.now(),
-      state: sessionStateRef.current,
-      config: sessionConfigRef.current,
-    });
+    publishSnapshot(sessionStateRef.current, sessionConfigRef.current);
   }, []);
 
   const setSpotifyEnabled = useCallback(
@@ -164,12 +171,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
       sessionConfigRef.current = nextConfig;
       setSessionConfig(nextConfig);
       const nextSetup: SetupInput = {
-        workTime: config.workTime,
-        restTime: config.restTime,
-        restBetweenStationsTime: config.restBetweenStationsTime,
-        roundsPerStation: config.roundsPerStation,
-        stations: config.stations,
-        fullSessionPasses: config.fullSessionPasses,
+        passes: config.passes,
         maxTrackPlaySeconds: config.maxTrackPlaySeconds,
         spotifyPlaylistUri: config.spotifyPlaylistUri,
         spotifyEnabled: enabled,
@@ -196,29 +198,14 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
     [publishCurrentState, setSpotifyVolume]
   );
 
-  const celebrateStationComplete = useCallback(() => {
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      startVelocity: 45,
-      origin: { y: 0.7 },
-    });
-    confetti({
-      particleCount: 50,
-      spread: 110,
-      startVelocity: 35,
-      scalar: 0.8,
-      origin: { y: 0.7 },
-    });
-  }, []);
-
   const markComplete = useCallback(
-    ({ playOutro = true }: { playOutro?: boolean } = {}) => {
+    ({ syncBackend = true }: { syncBackend?: boolean } = {}) => {
       const config = sessionConfigRef.current;
       if (!config) return;
 
       clearTicker();
       phaseEndTimeRef.current = null;
+      workVolumeDuckedForRef.current = null;
       updateSessionState((prev) => ({
         ...prev,
         phase: "complete",
@@ -231,11 +218,8 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
 
       setSpotifyVolume(config.restVolume);
 
-      if (playOutro) {
-        audioCuesRef.current.setCueVolume(config.workVolume);
-        void audioCuesRef.current.play("sessionComplete");
-      } else {
-        audioCuesRef.current.stopAll();
+      if (syncBackend) {
+        void gameSessionManager.end();
       }
     },
     [clearTicker, setSpotifyVolume, updateSessionState]
@@ -248,6 +232,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
 
     advancingRef.current = true;
     phaseEndTimeRef.current = null;
+    workVolumeDuckedForRef.current = null;
     try {
       const current = sessionStateRef.current;
 
@@ -280,10 +265,14 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
         }));
       };
 
-      const beginNextPassTransition = async (completed: number) => {
+      const beginNextPassTransition = (completed: number) => {
         clearTicker();
         setSpotifyVolume(config.restVolume);
         phaseEndTimeRef.current = null;
+        const nextPassNumber = current.currentPass + 1;
+        const nextConfig = withActivePass(config, nextPassNumber);
+        sessionConfigRef.current = nextConfig;
+        setSessionConfig(nextConfig);
         updateSessionState((prev) => ({
           ...prev,
           phase: "passBreak",
@@ -291,14 +280,9 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
           currentRound: 1,
           timeRemaining: 0,
           isRunning: false,
-          isPaused: false,
-          completedIntervals: completed,
-          currentPass: prev.currentPass + 1,
-        }));
-        await audioCuesRef.current.playAndWait("passTransition");
-        updateSessionState((prev) => ({
-          ...prev,
           isPaused: true,
+          completedIntervals: completed,
+          currentPass: nextPassNumber,
         }));
       };
 
@@ -307,8 +291,8 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
           current.currentStation === config.stations &&
           current.currentRound === config.roundsPerStation;
         if (isFinalWorkInterval) {
-          if (current.currentPass < config.fullSessionPasses) {
-            await beginNextPassTransition(completedIntervals);
+          if (current.currentPass < config.totalPasses) {
+            beginNextPassTransition(completedIntervals);
             return;
           }
           markComplete();
@@ -318,8 +302,6 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
         const transitionsToNextStation =
           current.currentRound === config.roundsPerStation &&
           current.currentStation < config.stations;
-        const restCue = transitionsToNextStation ? "switchStation" : "rest";
-        audioCuesRef.current.play(restCue);
         setSpotifyVolume(config.restVolume);
         commitPhase(
           "rest",
@@ -328,26 +310,12 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
           completedIntervals,
           transitionsToNextStation ? getRestDuration(config, true) : undefined
         );
-        buzzerStopRef.current = false;
-        buzzerDriverRef.current = (async () => {
-          await audioCuesRef.current.waitForCueToFinish(restCue);
-          let plays = 0;
-          while (!buzzerStopRef.current || plays < 3) {
-            if (sessionStateRef.current.phase !== "rest") break;
-            await audioCuesRef.current.playAndWait("buzzer");
-            plays += 1;
-          }
-        })();
         return;
       }
 
       if (current.phase === "rest") {
-        buzzerStopRef.current = true;
-        await buzzerDriverRef.current;
-
         if (current.currentRound < config.roundsPerStation) {
           setSpotifyVolume(config.workVolume);
-          await audioCuesRef.current.playAndWait("airHorn");
           commitPhase(
             "work",
             current.currentStation,
@@ -358,15 +326,13 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
         }
 
         if (current.currentStation < config.stations) {
-          celebrateStationComplete();
           setSpotifyVolume(config.workVolume);
-          await audioCuesRef.current.playAndWait("airHorn");
           commitPhase("work", current.currentStation + 1, 1, completedIntervals);
           return;
         }
 
-        if (current.currentPass < config.fullSessionPasses) {
-          await beginNextPassTransition(completedIntervals);
+        if (current.currentPass < config.totalPasses) {
+          beginNextPassTransition(completedIntervals);
           return;
         }
 
@@ -375,40 +341,51 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
     } finally {
       advancingRef.current = false;
     }
-  }, [celebrateStationComplete, clearTicker, markComplete, setSpotifyVolume, updateSessionState]);
+  }, [clearTicker, markComplete, setSpotifyVolume, updateSessionState]);
 
   const startTicker = useCallback(() => {
     if (intervalRef.current) return;
     intervalRef.current = setInterval(() => {
-      const phaseEnd = phaseEndTimeRef.current;
-      if (!phaseEnd) return;
       const config = sessionConfigRef.current;
+      const current = sessionStateRef.current;
+      let phaseEnd = phaseEndTimeRef.current;
+
+      if (!phaseEnd) {
+        if (
+          config &&
+          current.isRunning &&
+          !current.isPaused &&
+          TIMED_PHASES.includes(current.phase as (typeof TIMED_PHASES)[number])
+        ) {
+          if (current.timeRemaining > 0) {
+            phaseEndTimeRef.current = Date.now() + current.timeRemaining * 1000;
+            phaseEnd = phaseEndTimeRef.current;
+          } else {
+            void advancePhase();
+            return;
+          }
+        } else {
+          return;
+        }
+      }
 
       const millisecondsLeft = phaseEnd - Date.now();
       const nextSeconds = Math.max(0, Math.ceil(millisecondsLeft / 1000));
-      const current = sessionStateRef.current;
       const warningThreshold = Math.max(1, Math.min(15, config ? config.workTime - 1 : 15));
-      if (
-        config &&
-        current.phase === "work" &&
-        nextSeconds > 0 &&
-        nextSeconds <= warningThreshold
-      ) {
-        const cueKey = `${current.currentPass}-${current.currentStation}-${current.currentRound}`;
-        if (tenSecondsCuePlayedRef.current !== cueKey) {
-          tenSecondsCuePlayedRef.current = cueKey;
-          audioCuesRef.current.play("tenSecondsLeft");
-          setSpotifyVolume(config.restVolume);
-          void (async () => {
-            await audioCuesRef.current.waitForCueToFinish("tenSecondsLeft");
-            const latestState = sessionStateRef.current;
-            const latestCueKey = `${latestState.currentPass}-${latestState.currentStation}-${latestState.currentRound}`;
-            if (latestState.phase === "work" && latestCueKey === cueKey) {
-              setSpotifyVolume(config.workVolume);
-            }
-          })();
+
+      if (config && current.phase === "work" && nextSeconds > 0) {
+        const intervalKey = `${current.currentPass}-${current.currentStation}-${current.currentRound}`;
+        if (nextSeconds <= warningThreshold) {
+          if (workVolumeDuckedForRef.current !== intervalKey) {
+            workVolumeDuckedForRef.current = intervalKey;
+            setSpotifyVolume(config.restVolume);
+          }
+        } else if (workVolumeDuckedForRef.current === intervalKey) {
+          workVolumeDuckedForRef.current = null;
+          setSpotifyVolume(config.workVolume);
         }
       }
+
       if (nextSeconds !== sessionStateRef.current.timeRemaining) {
         updateSessionState((prev) => ({ ...prev, timeRemaining: nextSeconds }));
       }
@@ -419,33 +396,29 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
     }, 250);
   }, [advancePhase, setSpotifyVolume, updateSessionState]);
 
+  useEffect(() => {
+    return gameSessionManager.onRemoteGameState(({ state }) => {
+      if (state.sessionEnded || state.phase === "complete") {
+        if (sessionStateRef.current.phase !== "complete") {
+          markComplete({ syncBackend: false });
+        }
+      }
+      // Controller owns the workout clock — ignore Realtime state echoes while live.
+    });
+  }, [markComplete]);
+
   const startSession = useCallback(
     async (config: SessionConfig) => {
       sessionConfigRef.current = config;
       setSessionConfig(config);
-      audioCuesRef.current.setCueVolume(config.workVolume);
-      await audioCuesRef.current.refreshRestCues();
-      await audioCuesRef.current.refreshTenSecondsLeftCues();
-      audioCuesRef.current.resetRestShuffle();
-      audioCuesRef.current.resetTenSecondsLeftShuffle();
-      audioCuesRef.current.stopAll();
+      workVolumeDuckedForRef.current = null;
+
+      if (gameSessionManager.isEnabled()) {
+        await gameSessionManager.ensureSessionActive();
+      }
 
       const totalIntervals = getTotalIntervals(config);
       const firstWorkSeconds = getPhaseDuration("work", config);
-      updateSessionState(() => ({
-        phase: "work",
-        currentStation: 1,
-        currentRound: 1,
-        currentPass: 1,
-        timeRemaining: firstWorkSeconds,
-        isRunning: false,
-        isPaused: false,
-        completedIntervals: 0,
-        totalIntervals,
-        startedAtMs: undefined,
-        endedAtMs: undefined,
-      }));
-      tenSecondsCuePlayedRef.current = null;
 
       setSpotifyVolume(config.workVolume);
       if (isSpotifyPlaybackActive(config) && spotifyPlayerReadyRef.current) {
@@ -453,29 +426,47 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
         await spotifyService.setShuffle(true, deviceId);
         await spotifyService.playPlaylist(config.spotifyPlaylistUri);
       }
-      await audioCuesRef.current.playAndWait("airHorn");
 
       phaseEndTimeRef.current = Date.now() + firstWorkSeconds * 1000;
-      updateSessionState((prev) => ({
-        ...prev,
+      updateSessionState(() => ({
+        phase: "work",
+        currentStation: 1,
+        currentRound: 1,
+        currentPass: 1,
+        timeRemaining: firstWorkSeconds,
         isRunning: true,
+        isPaused: false,
+        completedIntervals: 0,
+        totalIntervals,
         startedAtMs: Date.now(),
         endedAtMs: undefined,
       }));
+
+      if (gameSessionManager.isEnabled()) {
+        await gameSessionManager.syncGameStateNow({
+          timestamp: Date.now(),
+          state: sessionStateRef.current,
+          config: toPublishedConfig(config),
+        });
+      }
+
       startTicker();
     },
     [setSpotifyVolume, startTicker, updateSessionState]
   );
 
   const endSession = useCallback(() => {
-    markComplete({ playOutro: false });
+    markComplete({ syncBackend: true });
   }, [markComplete]);
 
   const goHome = useCallback(() => {
     clearTicker();
     phaseEndTimeRef.current = null;
-    audioCuesRef.current.stopAll();
+    workVolumeDuckedForRef.current = null;
+    sessionConfigRef.current = null;
+    setSessionConfig(null);
     updateSessionState(() => INITIAL_SESSION_STATE);
+    gameSessionManager.reset();
   }, [clearTicker, updateSessionState]);
 
   const resumeNextPass = useCallback(async () => {
@@ -488,9 +479,9 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
     advancingRef.current = true;
     try {
       setSpotifyVolume(config.workVolume);
-      await audioCuesRef.current.playAndWait("airHorn");
       const workDuration = getPhaseDuration("work", config);
       phaseEndTimeRef.current = workDuration > 0 ? Date.now() + workDuration * 1000 : null;
+      workVolumeDuckedForRef.current = null;
       updateSessionState((prev) => ({
         ...prev,
         phase: "work",
@@ -500,6 +491,13 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
         isRunning: true,
         isPaused: false,
       }));
+      if (gameSessionManager.isEnabled()) {
+        await gameSessionManager.syncGameStateNow({
+          timestamp: Date.now(),
+          state: sessionStateRef.current,
+          config: toPublishedConfig(config),
+        });
+      }
       startTicker();
     } finally {
       advancingRef.current = false;

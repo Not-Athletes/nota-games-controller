@@ -1,4 +1,5 @@
-import type { Phase, SessionConfig } from "@/types/session";
+import type { PassConfig, Phase, SessionConfig } from "@/types/session";
+import { getTotalIntervalsFromPasses } from "@/lib/session/config";
 
 export function isSpotifyPlaybackActive(
   config: Pick<SessionConfig, "spotifyEnabled" | "spotifyPlaylistUri"> | null
@@ -22,9 +23,9 @@ export function getPhaseDuration(phase: Phase, config: SessionConfig) {
 }
 
 export function getTotalIntervals(config: SessionConfig) {
-  const worksPerPass = config.stations * config.roundsPerStation;
-  // Every work has a matching rest except the final work of each pass,
-  // which transitions straight to the next pass (or completion).
-  const restsPerPass = worksPerPass - 1;
-  return (worksPerPass + restsPerPass) * config.fullSessionPasses;
+  return getTotalIntervalsFromPasses(config.passes);
+}
+
+export function getPassConfig(config: SessionConfig, passNumber: number): PassConfig {
+  return config.passes[passNumber - 1] ?? config.passes[0];
 }

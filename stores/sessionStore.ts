@@ -1,0 +1,124 @@
+import { create } from "zustand";
+import { enrichLeaderboard } from "@/lib/session/playerTeams";
+import type { PlayerTeamLookup } from "@/lib/session/playerTeams";
+import type { LeaderboardEntry } from "@/types/leaderboard";
+import type { BackendGameState, ConnectedPlayer, SessionStatus } from "@/types/session-api";
+
+export type RealtimeChannelStatus = "idle" | "connecting" | "subscribed" | "error";
+
+type SessionStore = {
+  sessionId?: string;
+  status: SessionStatus;
+  connectedPlayers: ConnectedPlayer[];
+  leaderboard: LeaderboardEntry[];
+  playerTeams: PlayerTeamLookup;
+  remoteGameState: BackendGameState | null;
+  realtimeScoresStatus: RealtimeChannelStatus;
+  lastPresenceAt?: number;
+  setSessionId: (sessionId: string | undefined) => void;
+  setStatus: (status: SessionStatus) => void;
+  setConnectedPlayers: (players: ConnectedPlayer[]) => void;
+  removeConnectedPlayer: (playerId: string) => void;
+  setLeaderboard: (entries: LeaderboardEntry[]) => void;
+  mergePlayerTeams: (teams: PlayerTeamLookup) => void;
+  setRemoteGameState: (state: BackendGameState | null) => void;
+  setRealtimeScoresStatus: (status: RealtimeChannelStatus) => void;
+  touchPresence: () => void;
+  reset: () => void;
+};
+
+const SESSION_STORAGE_KEY = "nota_active_session_id";
+
+function readPersistedSessionId(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  return sessionStorage.getItem(SESSION_STORAGE_KEY) ?? undefined;
+}
+
+function persistSessionId(sessionId: string | undefined) {
+  if (typeof window === "undefined") return;
+  if (sessionId) {
+    sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+  } else {
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  }
+}
+
+const INITIAL_STATE = {
+  sessionId: undefined as string | undefined,
+  status: "draft" as SessionStatus,
+  connectedPlayers: [] as ConnectedPlayer[],
+  leaderboard: [] as LeaderboardEntry[],
+  playerTeams: {} as PlayerTeamLookup,
+  remoteGameState: null as BackendGameState | null,
+  realtimeScoresStatus: "idle" as RealtimeChannelStatus,
+  lastPresenceAt: undefined as number | undefined,
+};
+
+export const useSessionStore = create<SessionStore>((set) => ({
+  ...INITIAL_STATE,
+  setSessionId: (sessionId) => {
+    persistSessionId(sessionId);
+    set({ sessionId });
+  },
+  setStatus: (status) => set({ status }),
+  setConnectedPlayers: (connectedPlayers) => set({ connectedPlayers }),
+  removeConnectedPlayer: (playerId) =>
+    set((state) => {
+      const { [playerId]: _removed, ...playerTeams } = state.playerTeams;
+      void _removed;
+      return {
+        connectedPlayers: state.connectedPlayers.filter((player) => player.playerId !== playerId),
+        leaderboard: state.leaderboard.filter((entry) => entry.playerId !== playerId),
+        playerTeams,
+      };
+    }),
+  setLeaderboard: (leaderboard) =>
+    set((state) => ({
+      leaderboard: enrichLeaderboard(leaderboard ?? [], state.playerTeams, state.leaderboard),
+    })),
+  mergePlayerTeams: (teams) =>
+    set((state) => {
+      const playerTeams = { ...state.playerTeams, ...teams };
+      return {
+        playerTeams,
+        leaderboard: enrichLeaderboard(state.leaderboard, playerTeams),
+      };
+    }),
+  setRemoteGameState: (remoteGameState) => set({ remoteGameState }),
+  setRealtimeScoresStatus: (realtimeScoresStatus) => set({ realtimeScoresStatus }),
+  touchPresence: () => set({ lastPresenceAt: Date.now() }),
+  reset: () => {
+    persistSessionId(undefined);
+    set(INITIAL_STATE);
+  },
+}));
+
+/** Non-React access for orchestration outside components. */
+export const sessionStore = {
+  getState: () => useSessionStore.getState(),
+  setSessionId: (sessionId: string | undefined) =>
+    useSessionStore.getState().setSessionId(sessionId),
+  setStatus: (status: SessionStatus) => useSessionStore.getState().setStatus(status),
+  setConnectedPlayers: (players: ConnectedPlayer[]) =>
+    useSessionStore.getState().setConnectedPlayers(players),
+  removeConnectedPlayer: (playerId: string) =>
+    useSessionStore.getState().removeConnectedPlayer(playerId),
+  setLeaderboard: (entries: LeaderboardEntry[]) =>
+    useSessionStore.getState().setLeaderboard(entries),
+  mergePlayerTeams: (teams: PlayerTeamLookup) =>
+    useSessionStore.getState().mergePlayerTeams(teams),
+  setRemoteGameState: (state: BackendGameState | null) =>
+    useSessionStore.getState().setRemoteGameState(state),
+  setRealtimeScoresStatus: (status: RealtimeChannelStatus) =>
+    useSessionStore.getState().setRealtimeScoresStatus(status),
+  touchPresence: () => useSessionStore.getState().touchPresence(),
+  reset: () => useSessionStore.getState().reset(),
+};
+
+/** Restore persisted session id after client mount (avoids SSR hydration mismatch). */
+export function hydrateSessionStoreFromStorage() {
+  const sessionId = readPersistedSessionId();
+  if (sessionId && !useSessionStore.getState().sessionId) {
+    useSessionStore.setState({ sessionId });
+  }
+}

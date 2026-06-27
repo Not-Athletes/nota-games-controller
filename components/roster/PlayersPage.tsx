@@ -1,7 +1,8 @@
 "use client";
 
 import { NotaAppNav } from "@/components/NotaAppNav";
-import { RosterSetup } from "@/components/roster/RosterSetup";
+import { SessionPlayersTable } from "@/components/roster/SessionPlayersTable";
+import { SessionQrCode } from "@/components/SessionQrCode";
 
 export function PlayersPage() {
   return (
@@ -9,7 +10,8 @@ export function PlayersPage() {
       <header className="flex justify-center">
         <NotaAppNav />
       </header>
-      <RosterSetup />
+      <SessionQrCode />
+      <SessionPlayersTable />
     </div>
   );
 }
