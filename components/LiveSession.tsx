@@ -103,12 +103,18 @@ export function LiveSession({
                 </p>
               ) : null}
             </div>
-            {config.fullSessionPasses > 1 ? (
+            {config.totalPasses > 1 ? (
               <p className="mb-2 text-xs text-zinc-500">
                 Pass{" "}
                 <span className="font-semibold text-zinc-800">
-                  {state.currentPass} of {config.fullSessionPasses}
+                  {state.currentPass} of {config.totalPasses}
                 </span>
+              </p>
+            ) : null}
+            {isPassPaused ? (
+              <p className="mb-2 text-xs text-zinc-600">
+                Up next: {config.stations} stations × {config.roundsPerStation} rounds,{" "}
+                {config.workTime}s work
               </p>
             ) : null}
             <p className="mt-auto self-start text-left font-display text-7xl font-bold tabular-nums text-zinc-900 md:text-6xl">

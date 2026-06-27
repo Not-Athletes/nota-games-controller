@@ -82,7 +82,7 @@ export function ScoresDashboard() {
         pass: sessionState.currentPass,
         totalStations: sessionConfig.stations,
         roundsPerStation: sessionConfig.roundsPerStation,
-        totalPasses: sessionConfig.fullSessionPasses,
+        totalPasses: sessionConfig.totalPasses,
       };
     }
 
@@ -92,7 +92,7 @@ export function ScoresDashboard() {
       pass: 0,
       totalStations: sessionConfig?.stations ?? 0,
       roundsPerStation: sessionConfig?.roundsPerStation ?? 0,
-      totalPasses: sessionConfig?.fullSessionPasses ?? 0,
+      totalPasses: sessionConfig?.totalPasses ?? 0,
     };
   }, [sessionConfig, sessionState]);
 

@@ -5,13 +5,16 @@ import { z } from "zod";
 const SPOTIFY_PLAYLIST_REGEX =
   /^(spotify:playlist:[A-Za-z0-9]+|https?:\/\/open\.spotify\.com\/(?:intl-[a-z]{2}\/)?playlist\/[A-Za-z0-9]+(?:[/?].*)?)$/;
 
-export const setupSchema = z.object({
+export const passConfigSchema = z.object({
+  stations: z.coerce.number().int().min(1).max(12),
+  roundsPerStation: z.coerce.number().int().min(1).max(10),
   workTime: z.coerce.number().int().min(10).max(120),
   restTime: z.coerce.number().int().min(5).max(60),
   restBetweenStationsTime: z.coerce.number().int().min(5).max(120),
-  roundsPerStation: z.coerce.number().int().min(1).max(10),
-  stations: z.coerce.number().int().min(1).max(12),
-  fullSessionPasses: z.coerce.number().int().min(1).max(5),
+});
+
+export const setupSchema = z.object({
+  passes: z.array(passConfigSchema).min(1),
   maxTrackPlaySeconds: z.coerce.number().int().min(30).max(600),
   spotifyEnabled: z.boolean(),
   spotifyPlaylistUri: z
@@ -29,3 +32,4 @@ export const setupSchema = z.object({
 });
 
 export type SetupSchema = z.infer<typeof setupSchema>;
+export type PassConfigSchema = z.infer<typeof passConfigSchema>;

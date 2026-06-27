@@ -6,6 +6,7 @@ import { ConnectionCard } from "@/components/ConnectionCard";
 import { useSessionOrchestration } from "@/hooks/useSessionOrchestration";
 import { useSessionState } from "@/hooks/useSessionState";
 import { setupSchema } from "@/lib/validation";
+import { setupToSessionConfig } from "@/lib/session/config";
 import type { SetupInput } from "@/types/session";
 
 type SessionConnectProps = {
@@ -44,11 +45,12 @@ export function SessionConnect({
 
     setCreating(true);
     try {
-      await createSession({
-        ...(parsed.data as SetupInput),
-        workVolume,
-        restVolume,
-      });
+      await createSession(
+        setupToSessionConfig(parsed.data, {
+          workVolume,
+          restVolume,
+        })
+      );
     } catch (createError) {
       const message =
         createError instanceof Error ? createError.message : "Could not create session";

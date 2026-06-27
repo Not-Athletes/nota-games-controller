@@ -72,4 +72,10 @@ export const participantService = {
       body: JSON.stringify(payload),
     }, participantRowSchema);
   },
+
+  async removeParticipant(sessionId: string, playerId: string) {
+    await apiRequest(`/dashboard/sessions/${sessionId}/participants/${playerId}`, {
+      method: "DELETE",
+    });
+  },
 };

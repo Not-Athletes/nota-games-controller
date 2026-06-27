@@ -10,8 +10,8 @@ import {
   syncGameStateImmediate,
 } from "@/lib/session/gameStateSync";
 import { storeStatusFromBackendState, toBackendStatePatch } from "@/lib/session/backendGameState";
-import { leaderboardService } from "@/services/leaderboard.service";
 import { participantService } from "@/services/participant.service";
+import { leaderboardService } from "@/services/leaderboard.service";
 import { sessionService } from "@/services/session.service";
 import { sessionStore } from "@/stores/sessionStore";
 import type { SessionConfig } from "@/types/session";
@@ -215,6 +215,17 @@ export const gameSessionManager = {
     }
 
     await this.refreshParticipantTeams();
+  },
+
+  async removePlayerFromSession(playerId: string) {
+    const { sessionId } = sessionStore.getState();
+    if (!sessionId || !isNotaApiConfigured()) {
+      throw new Error("No active session");
+    }
+
+    await participantService.removeParticipant(sessionId, playerId);
+    sessionStore.removeConnectedPlayer(playerId);
+    void this.refreshLeaderboard();
   },
 };
 

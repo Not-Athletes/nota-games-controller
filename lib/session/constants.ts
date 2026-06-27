@@ -1,12 +1,15 @@
-import type { SessionState, SetupInput } from "@/types/session";
+import type { PassConfig, SessionState, SetupInput } from "@/types/session";
 
-export const DEFAULT_SETUP: SetupInput = {
+export const DEFAULT_PASS: PassConfig = {
   workTime: 45,
   restTime: 15,
   restBetweenStationsTime: 30,
   roundsPerStation: 3,
   stations: 6,
-  fullSessionPasses: 2,
+};
+
+export const DEFAULT_SETUP: SetupInput = {
+  passes: [{ ...DEFAULT_PASS }],
   maxTrackPlaySeconds: 190,
   spotifyPlaylistUri: "",
   spotifyEnabled: false,

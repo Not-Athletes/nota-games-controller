@@ -18,6 +18,7 @@ type SessionStore = {
   setSessionId: (sessionId: string | undefined) => void;
   setStatus: (status: SessionStatus) => void;
   setConnectedPlayers: (players: ConnectedPlayer[]) => void;
+  removeConnectedPlayer: (playerId: string) => void;
   setLeaderboard: (entries: LeaderboardEntry[]) => void;
   mergePlayerTeams: (teams: PlayerTeamLookup) => void;
   setRemoteGameState: (state: BackendGameState | null) => void;
@@ -61,6 +62,16 @@ export const useSessionStore = create<SessionStore>((set) => ({
   },
   setStatus: (status) => set({ status }),
   setConnectedPlayers: (connectedPlayers) => set({ connectedPlayers }),
+  removeConnectedPlayer: (playerId) =>
+    set((state) => {
+      const { [playerId]: _removed, ...playerTeams } = state.playerTeams;
+      void _removed;
+      return {
+        connectedPlayers: state.connectedPlayers.filter((player) => player.playerId !== playerId),
+        leaderboard: state.leaderboard.filter((entry) => entry.playerId !== playerId),
+        playerTeams,
+      };
+    }),
   setLeaderboard: (leaderboard) =>
     set((state) => ({
       leaderboard: enrichLeaderboard(leaderboard ?? [], state.playerTeams, state.leaderboard),
@@ -90,6 +101,8 @@ export const sessionStore = {
   setStatus: (status: SessionStatus) => useSessionStore.getState().setStatus(status),
   setConnectedPlayers: (players: ConnectedPlayer[]) =>
     useSessionStore.getState().setConnectedPlayers(players),
+  removeConnectedPlayer: (playerId: string) =>
+    useSessionStore.getState().removeConnectedPlayer(playerId),
   setLeaderboard: (entries: LeaderboardEntry[]) =>
     useSessionStore.getState().setLeaderboard(entries),
   mergePlayerTeams: (teams: PlayerTeamLookup) =>

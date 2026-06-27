@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { publishGameState } from "@/lib/gameState/publish";
+import { toPublishedConfig, withActivePass } from "@/lib/session/config";
 import { gameSessionManager } from "@/lib/session/gameSessionManager";
 import {
   AUTO_NEXT_THRESHOLD_MS,
@@ -65,10 +66,27 @@ function readSetupFromStorage(): SetupInput {
     const stored = JSON.parse(raw) as Partial<SetupInput> & { attendees?: unknown };
     const { attendees: _legacyAttendees, ...rest } = stored;
     void _legacyAttendees;
-    return { ...DEFAULT_SETUP, ...rest };
+
+    if (!Array.isArray(rest.passes) || rest.passes.length < 1) {
+      return DEFAULT_SETUP;
+    }
+
+    return {
+      ...DEFAULT_SETUP,
+      ...rest,
+      passes: rest.passes,
+    };
   } catch {
     return DEFAULT_SETUP;
   }
+}
+
+function publishSnapshot(state: SessionState, config: SessionConfig | null) {
+  publishGameState({
+    timestamp: Date.now(),
+    state,
+    config: config ? toPublishedConfig(config) : null,
+  });
 }
 
 /**
@@ -104,11 +122,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
   }, [spotifyStatus.playerReady]);
 
   useEffect(() => {
-    publishGameState({
-      timestamp: Date.now(),
-      state: sessionStateRef.current,
-      config: sessionConfigRef.current,
-    });
+    publishSnapshot(sessionStateRef.current, sessionConfigRef.current);
   }, []);
 
   const clearTicker = useCallback(() => {
@@ -124,11 +138,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
       sessionStateRef.current = next;
       setSessionState(next);
       if (options?.sync !== false) {
-        publishGameState({
-          timestamp: Date.now(),
-          state: next,
-          config: sessionConfigRef.current,
-        });
+        publishSnapshot(next, sessionConfigRef.current);
       }
     },
     []
@@ -149,11 +159,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
   }, []);
 
   const publishCurrentState = useCallback(() => {
-    publishGameState({
-      timestamp: Date.now(),
-      state: sessionStateRef.current,
-      config: sessionConfigRef.current,
-    });
+    publishSnapshot(sessionStateRef.current, sessionConfigRef.current);
   }, []);
 
   const setSpotifyEnabled = useCallback(
@@ -165,12 +171,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
       sessionConfigRef.current = nextConfig;
       setSessionConfig(nextConfig);
       const nextSetup: SetupInput = {
-        workTime: config.workTime,
-        restTime: config.restTime,
-        restBetweenStationsTime: config.restBetweenStationsTime,
-        roundsPerStation: config.roundsPerStation,
-        stations: config.stations,
-        fullSessionPasses: config.fullSessionPasses,
+        passes: config.passes,
         maxTrackPlaySeconds: config.maxTrackPlaySeconds,
         spotifyPlaylistUri: config.spotifyPlaylistUri,
         spotifyEnabled: enabled,
@@ -268,6 +269,10 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
         clearTicker();
         setSpotifyVolume(config.restVolume);
         phaseEndTimeRef.current = null;
+        const nextPassNumber = current.currentPass + 1;
+        const nextConfig = withActivePass(config, nextPassNumber);
+        sessionConfigRef.current = nextConfig;
+        setSessionConfig(nextConfig);
         updateSessionState((prev) => ({
           ...prev,
           phase: "passBreak",
@@ -277,7 +282,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
           isRunning: false,
           isPaused: true,
           completedIntervals: completed,
-          currentPass: prev.currentPass + 1,
+          currentPass: nextPassNumber,
         }));
       };
 
@@ -286,7 +291,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
           current.currentStation === config.stations &&
           current.currentRound === config.roundsPerStation;
         if (isFinalWorkInterval) {
-          if (current.currentPass < config.fullSessionPasses) {
+          if (current.currentPass < config.totalPasses) {
             beginNextPassTransition(completedIntervals);
             return;
           }
@@ -326,7 +331,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
           return;
         }
 
-        if (current.currentPass < config.fullSessionPasses) {
+        if (current.currentPass < config.totalPasses) {
           beginNextPassTransition(completedIntervals);
           return;
         }
@@ -441,7 +446,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
         await gameSessionManager.syncGameStateNow({
           timestamp: Date.now(),
           state: sessionStateRef.current,
-          config,
+          config: toPublishedConfig(config),
         });
       }
 
@@ -458,6 +463,8 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
     clearTicker();
     phaseEndTimeRef.current = null;
     workVolumeDuckedForRef.current = null;
+    sessionConfigRef.current = null;
+    setSessionConfig(null);
     updateSessionState(() => INITIAL_SESSION_STATE);
     gameSessionManager.reset();
   }, [clearTicker, updateSessionState]);
@@ -488,7 +495,7 @@ export function SessionControllerProvider({ children }: { children: ReactNode })
         await gameSessionManager.syncGameStateNow({
           timestamp: Date.now(),
           state: sessionStateRef.current,
-          config,
+          config: toPublishedConfig(config),
         });
       }
       startTicker();

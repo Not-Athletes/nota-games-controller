@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid game state payload" }, { status: 400 });
   }
 
-  latestSnapshot = parsed.data;
+  latestSnapshot = parsed.data as GameStatePayload;
 
   try {
     await forwardToWebhook(parsed.data);

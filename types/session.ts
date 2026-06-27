@@ -5,21 +5,31 @@ export type Phase =
   | "passBreak"
   | "complete";
 
-export type SessionConfig = {
+export type PassConfig = {
+  stations: number;
+  roundsPerStation: number;
   workTime: number;
   restTime: number;
-  /** Rest duration after the last round at a station, before moving to the next station. */
   restBetweenStationsTime: number;
-  roundsPerStation: number;
-  stations: number;
-  /** Run through all stations × rounds this many times (1 = current behavior). */
-  fullSessionPasses: number;
+};
+
+export type SetupInput = {
+  passes: PassConfig[];
   maxTrackPlaySeconds: number;
+  spotifyPlaylistUri?: string;
+  spotifyEnabled: boolean;
+};
+
+/** Active session configuration (global + all passes + denormalized active pass fields). */
+export type SessionConfig = SetupInput & {
   workVolume: number;
   restVolume: number;
-  spotifyPlaylistUri?: string;
-  /** When false, no playlist plays even if connected and a URL is set. */
-  spotifyEnabled: boolean;
+  totalPasses: number;
+  stations: number;
+  roundsPerStation: number;
+  workTime: number;
+  restTime: number;
+  restBetweenStationsTime: number;
 };
 
 export type SessionState = {
@@ -35,16 +45,4 @@ export type SessionState = {
   totalIntervals: number;
   startedAtMs?: number;
   endedAtMs?: number;
-};
-
-export type SetupInput = {
-  workTime: number;
-  restTime: number;
-  restBetweenStationsTime: number;
-  roundsPerStation: number;
-  stations: number;
-  fullSessionPasses: number;
-  maxTrackPlaySeconds: number;
-  spotifyPlaylistUri?: string;
-  spotifyEnabled: boolean;
 };

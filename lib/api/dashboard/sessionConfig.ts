@@ -5,7 +5,7 @@ export function toBackendSessionConfig(config: SessionConfig): BackendSessionCon
   return {
     stations: config.stations,
     roundsPerStation: config.roundsPerStation,
-    fullSessionPasses: config.fullSessionPasses,
+    fullSessionPasses: config.totalPasses,
     workDurationSecs: config.workTime,
     restDurationSecs: config.restTime,
   };

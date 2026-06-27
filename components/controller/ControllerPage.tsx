@@ -1,14 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { LiveSession } from "@/components/LiveSession";
 import { NotaAppNav } from "@/components/NotaAppNav";
 import { NotaSignIn } from "@/components/NotaSignIn";
 import { SessionConnect } from "@/components/SessionConnect";
 import { SetupForm } from "@/components/SetupForm";
-import { SpotifyConnect } from "@/components/SpotifyConnect";
+import { SetupReview } from "@/components/SetupReview";
 import { useSessionController } from "@/contexts/SessionControllerContext";
 import { useNotaAuth } from "@/hooks/useNotaAuth";
 import { useSessionOrchestration } from "@/hooks/useSessionOrchestration";
+import { setupToSessionConfig } from "@/lib/session/config";
 import type { SetupInput } from "@/types/session";
 
 export function ControllerPage() {
@@ -32,6 +34,7 @@ export function ControllerPage() {
   } = useSessionController();
   const { sessionId, backendEnabled } = useSessionOrchestration();
   const notaAuth = useNotaAuth();
+  const [setupStep, setSetupStep] = useState<"setup" | "review">("setup");
 
   const persistSetupValues = (config: SetupInput) => {
     setSetupValues(config);
@@ -39,6 +42,18 @@ export function ControllerPage() {
   };
 
   const sessionOpen = backendEnabled && Boolean(sessionId);
+  const startDisabled = backendEnabled && !sessionId;
+  const startDisabledReason = "Create a session first so phones can join before you start the session.";
+
+  const handleStartSession = (config: SetupInput) => {
+    persistSetupValues(config);
+    void startSession(
+      setupToSessionConfig(config, {
+        workVolume,
+        restVolume,
+      })
+    );
+  };
 
   if (sessionState.phase === "idle") {
     if (notaAuth.requiresAuth && !notaAuth.loading && !notaAuth.authenticated) {
@@ -61,49 +76,44 @@ export function ControllerPage() {
             <NotaAppNav />
           </header>
 
-          <div
-            className={
-              backendEnabled
-                ? "grid grid-cols-1 gap-4 md:grid-cols-2"
-                : "grid grid-cols-1 gap-4"
-            }
-          >
-            <SpotifyConnect
-              status={spotifyStatus}
-              onConnect={handleConnectSpotify}
-              onDisconnect={handleDisconnectSpotify}
+          {backendEnabled && setupStep === "setup" ? (
+            <SessionConnect
+              setupValues={setupValues}
+              workVolume={workVolume}
+              restVolume={restVolume}
+              enabled={backendEnabled}
             />
+          ) : null}
 
-            {backendEnabled ? (
-              <SessionConnect
-                setupValues={setupValues}
-                workVolume={workVolume}
-                restVolume={restVolume}
-                enabled={backendEnabled}
-              />
-            ) : null}
-          </div>
-
-          <SetupForm
-            values={setupValues}
-            onValuesChange={persistSetupValues}
-            fieldsDisabled={sessionOpen}
-            fieldsDisabledReason={
-              sessionOpen
-                ? "Workout settings are locked while a session is open. End the session to change them."
-                : undefined
-            }
-            startDisabled={backendEnabled && !sessionId}
-            startDisabledReason="Create a session first so phones can join before you start the session."
-            onStart={(config) => {
-              persistSetupValues(config);
-              void startSession({
-                ...config,
-                workVolume,
-                restVolume,
-              });
-            }}
-          />
+          {setupStep === "setup" ? (
+            <SetupForm
+              values={setupValues}
+              onValuesChange={persistSetupValues}
+              spotifyStatus={spotifyStatus}
+              onConnectSpotify={handleConnectSpotify}
+              onDisconnectSpotify={handleDisconnectSpotify}
+              fieldsDisabled={sessionOpen}
+              fieldsDisabledReason={
+                sessionOpen
+                  ? "Workout settings are locked while a session is open. End the session to change them."
+                  : undefined
+              }
+              continueDisabled={startDisabled}
+              continueDisabledReason={startDisabled ? startDisabledReason : undefined}
+              onContinue={(config) => {
+                persistSetupValues(config);
+                setSetupStep("review");
+              }}
+            />
+          ) : (
+            <SetupReview
+              values={setupValues}
+              onBack={() => setSetupStep("setup")}
+              onStart={() => handleStartSession(setupValues)}
+              startDisabled={startDisabled}
+              startDisabledReason={startDisabled ? startDisabledReason : undefined}
+            />
+          )}
         </div>
       </div>
     );
@@ -114,17 +124,20 @@ export function ControllerPage() {
       <LiveSession
         state={sessionState}
         config={
-          sessionConfig ?? {
-            ...defaultSetup,
+          sessionConfig ??
+          setupToSessionConfig(defaultSetup, {
             workVolume,
             restVolume,
-          }
+          })
         }
         spotifyStatus={spotifyStatus}
         nowPlaying={nowPlaying}
         onEndSession={endSession}
         onResumeNextPass={() => void resumeNextPass()}
-        onGoHome={goHome}
+        onGoHome={() => {
+          setSetupStep("setup");
+          goHome();
+        }}
         onToggleSpotifyEnabled={(enabled) => void setSpotifyEnabled(enabled)}
       />
     </div>

@@ -14,6 +14,7 @@ export function useSessionOrchestration() {
     backendEnabled,
     createSession: (config: SessionConfig) => gameSessionManager.createSession(config),
     disconnectSession: () => gameSessionManager.disconnectSession(),
+    removePlayerFromSession: (playerId: string) => gameSessionManager.removePlayerFromSession(playerId),
     endSession: () => gameSessionManager.end(),
     resetSession: () => gameSessionManager.reset(),
     sessionService,
