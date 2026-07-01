@@ -100,6 +100,9 @@ export const gameSessionManager = {
 
       sessionStore.setSessionId(session.id);
       sessionStore.setStatus("draft");
+      sessionStore.clearPresenceState();
+      sessionStore.setLeaderboard([]);
+      sessionStore.mergePlayerTeams({});
     } catch (error) {
       console.warn("Failed to create backend session", error);
       throw error;
@@ -205,6 +208,21 @@ export const gameSessionManager = {
       sessionStore.mergePlayerTeams(participantsToTeamLookup(participants));
     } catch (error) {
       console.warn("Failed to refresh participant teams", error);
+    }
+  },
+
+  /** Bootstrap player list from REST when Realtime presence has not arrived yet. */
+  async refreshConnectedPlayers() {
+    const { sessionId, lastPresenceAt } = sessionStore.getState();
+    if (!sessionId || !isNotaApiConfigured() || lastPresenceAt) return;
+
+    try {
+      const players = await participantService.fetchJoinedParticipants(sessionId);
+      if (players.length > 0) {
+        sessionStore.setConnectedPlayers(players);
+      }
+    } catch (error) {
+      console.warn("Failed to refresh connected players", error);
     }
   },
 

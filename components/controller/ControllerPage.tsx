@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { LiveSession } from "@/components/LiveSession";
 import { NotaAppNav } from "@/components/NotaAppNav";
 import { NotaSignIn } from "@/components/NotaSignIn";
 import { SessionConnect } from "@/components/SessionConnect";
 import { SetupForm } from "@/components/SetupForm";
-import { SetupReview } from "@/components/SetupReview";
 import { useSessionController } from "@/contexts/SessionControllerContext";
 import { useNotaAuth } from "@/hooks/useNotaAuth";
 import { useSessionOrchestration } from "@/hooks/useSessionOrchestration";
@@ -34,7 +32,6 @@ export function ControllerPage() {
   } = useSessionController();
   const { sessionId, backendEnabled } = useSessionOrchestration();
   const notaAuth = useNotaAuth();
-  const [setupStep, setSetupStep] = useState<"setup" | "review">("setup");
 
   const persistSetupValues = (config: SetupInput) => {
     setSetupValues(config);
@@ -76,7 +73,7 @@ export function ControllerPage() {
             <NotaAppNav />
           </header>
 
-          {backendEnabled && setupStep === "setup" ? (
+          {backendEnabled ? (
             <SessionConnect
               setupValues={setupValues}
               workVolume={workVolume}
@@ -85,35 +82,17 @@ export function ControllerPage() {
             />
           ) : null}
 
-          {setupStep === "setup" ? (
-            <SetupForm
-              values={setupValues}
-              onValuesChange={persistSetupValues}
-              spotifyStatus={spotifyStatus}
-              onConnectSpotify={handleConnectSpotify}
-              onDisconnectSpotify={handleDisconnectSpotify}
-              fieldsDisabled={sessionOpen}
-              fieldsDisabledReason={
-                sessionOpen
-                  ? "Workout settings are locked while a session is open. End the session to change them."
-                  : undefined
-              }
-              continueDisabled={startDisabled}
-              continueDisabledReason={startDisabled ? startDisabledReason : undefined}
-              onContinue={(config) => {
-                persistSetupValues(config);
-                setSetupStep("review");
-              }}
-            />
-          ) : (
-            <SetupReview
-              values={setupValues}
-              onBack={() => setSetupStep("setup")}
-              onStart={() => handleStartSession(setupValues)}
-              startDisabled={startDisabled}
-              startDisabledReason={startDisabled ? startDisabledReason : undefined}
-            />
-          )}
+          <SetupForm
+            values={setupValues}
+            onValuesChange={persistSetupValues}
+            spotifyStatus={spotifyStatus}
+            onConnectSpotify={handleConnectSpotify}
+            onDisconnectSpotify={handleDisconnectSpotify}
+            fieldsDisabled={sessionOpen}
+            startDisabled={startDisabled}
+            startDisabledReason={startDisabled ? startDisabledReason : undefined}
+            onStart={handleStartSession}
+          />
         </div>
       </div>
     );
@@ -134,10 +113,7 @@ export function ControllerPage() {
         nowPlaying={nowPlaying}
         onEndSession={endSession}
         onResumeNextPass={() => void resumeNextPass()}
-        onGoHome={() => {
-          setSetupStep("setup");
-          goHome();
-        }}
+        onGoHome={goHome}
         onToggleSpotifyEnabled={(enabled) => void setSpotifyEnabled(enabled)}
       />
     </div>

@@ -46,15 +46,29 @@ export function normalizeConnectedPlayer(value: unknown): unknown {
   if (!normalized || typeof normalized !== "object") return normalized;
 
   const record = normalized as Record<string, unknown>;
-  const playerId = record.playerId ?? record.id ?? record.userId;
-  const playerName = record.playerName ?? record.name ?? record.tag ?? record.displayName;
+  const playerId = record.playerId ?? record.id ?? record.userId ?? record.player_id;
+  const playerName =
+    record.playerName ?? record.name ?? record.tag ?? record.displayName ?? record.player_name;
+
+  const playerIdString = typeof playerId === "string" ? playerId.trim() : String(playerId ?? "").trim();
+  if (!playerIdString) {
+    return null;
+  }
 
   return {
-    playerId: typeof playerId === "string" ? playerId : String(playerId ?? ""),
-    playerName: typeof playerName === "string" ? playerName : "Player",
-    teamId: record.teamId ?? null,
+    playerId: playerIdString,
+    playerName: typeof playerName === "string" && playerName.trim() ? playerName.trim() : "Player",
+    teamId: record.teamId ?? record.team_id ?? null,
     joinedAt: record.joinedAt ?? record.joined_at ?? 0,
   };
+}
+
+export function parseConnectedPlayersFromUnknown(value: unknown): unknown[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map(normalizeConnectedPlayer)
+    .filter((player): player is NonNullable<typeof player> => player !== null);
 }
 
 function extractConnectedPlayers(record: Record<string, unknown>): unknown[] | null {
@@ -87,7 +101,7 @@ export function normalizePresencePayload(payload: unknown): unknown {
   const players = extractConnectedPlayers(record);
 
   if (players) {
-    record.connectedPlayers = players.map(normalizeConnectedPlayer);
+    record.connectedPlayers = parseConnectedPlayersFromUnknown(players);
   }
 
   return record;

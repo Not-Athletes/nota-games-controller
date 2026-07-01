@@ -18,12 +18,12 @@ import { SpotifySettings } from "@/components/SpotifySettings";
 type SetupFormProps = {
   values: SetupInput;
   onValuesChange: (values: SetupInput) => void;
-  onContinue: (config: SetupInput) => void;
+  onStart: (config: SetupInput) => void;
   spotifyStatus: SpotifyStatus;
   onConnectSpotify: () => void;
   onDisconnectSpotify: () => void;
-  continueDisabled?: boolean;
-  continueDisabledReason?: string;
+  startDisabled?: boolean;
+  startDisabledReason?: string;
   fieldsDisabled?: boolean;
   fieldsDisabledReason?: string;
 };
@@ -42,12 +42,12 @@ function reorderPasses(passes: PassConfig[], fromIndex: number, toIndex: number)
 export function SetupForm({
   values,
   onValuesChange,
-  onContinue,
+  onStart,
   spotifyStatus,
   onConnectSpotify,
   onDisconnectSpotify,
-  continueDisabled = false,
-  continueDisabledReason,
+  startDisabled = false,
+  startDisabledReason,
   fieldsDisabled = false,
   fieldsDisabledReason,
 }: SetupFormProps) {
@@ -151,7 +151,7 @@ export function SetupForm({
 
     setGlobalErrors({});
     setPassErrors({});
-    onContinue(parsed.data);
+    onStart(parsed.data);
   };
 
   return (
@@ -159,6 +159,11 @@ export function SetupForm({
       {fieldsDisabled && fieldsDisabledReason ? (
         <p className="rounded-sm bg-zinc-100 px-4 py-3 text-sm text-zinc-600">{fieldsDisabledReason}</p>
       ) : null}
+
+      <div>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">
+          Session settings
+        </p>
 
       {multiPass ? (
         <div className="flex flex-col gap-4">
@@ -221,9 +226,11 @@ export function SetupForm({
         </div>
       )}
 
+      </div>
+
       <div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">
-          Session settings
+          Global settings
         </p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <SpotifySettings
@@ -246,13 +253,13 @@ export function SetupForm({
 
       <button
         type="submit"
-        disabled={continueDisabled}
+        disabled={startDisabled}
         className="rounded-sm bg-[#1DB954] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#18a449] disabled:cursor-not-allowed disabled:bg-zinc-300"
       >
-        Continue to review
+        Start the session
       </button>
-      {continueDisabled && continueDisabledReason ? (
-        <p className="text-sm text-zinc-500">{continueDisabledReason}</p>
+      {startDisabled && startDisabledReason ? (
+        <p className="text-sm text-zinc-500">{startDisabledReason}</p>
       ) : null}
     </form>
   );

@@ -11,12 +11,15 @@ import { sessionStore, useSessionStore } from "@/stores/sessionStore";
 /** Tracks per-session initial REST loads (handoff: fetch once, then Realtime only). */
 const initialLeaderboardLoadedFor = new Set<string>();
 const initialParticipantTeamsLoadedFor = new Set<string>();
+const initialConnectedPlayersLoadedFor = new Set<string>();
 
 export function useSessionRealtime() {
   const sessionId = useSessionStore((state) => state.sessionId);
 
   useEffect(() => {
     if (!sessionId || !isSupabaseConfigured()) return;
+
+    sessionStore.clearPresenceState();
 
     let unsubscribe: (() => void) | undefined;
     let cancelled = false;
@@ -50,6 +53,11 @@ export function useSessionRealtime() {
           initialParticipantTeamsLoadedFor.add(sessionId!);
           void gameSessionManager.refreshParticipantTeams();
         }
+
+        if (!initialConnectedPlayersLoadedFor.has(sessionId!)) {
+          initialConnectedPlayersLoadedFor.add(sessionId!);
+          void gameSessionManager.refreshConnectedPlayers();
+        }
       }
     }
 
@@ -74,6 +82,7 @@ export function useSessionRealtime() {
     return () => {
       initialLeaderboardLoadedFor.delete(sessionId);
       initialParticipantTeamsLoadedFor.delete(sessionId);
+      initialConnectedPlayersLoadedFor.delete(sessionId);
     };
   }, [sessionId]);
 }

@@ -24,6 +24,7 @@ type SessionStore = {
   setRemoteGameState: (state: BackendGameState | null) => void;
   setRealtimeScoresStatus: (status: RealtimeChannelStatus) => void;
   touchPresence: () => void;
+  clearPresenceState: () => void;
   reset: () => void;
 };
 
@@ -87,6 +88,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
   setRemoteGameState: (remoteGameState) => set({ remoteGameState }),
   setRealtimeScoresStatus: (realtimeScoresStatus) => set({ realtimeScoresStatus }),
   touchPresence: () => set({ lastPresenceAt: Date.now() }),
+  clearPresenceState: () => set({ connectedPlayers: [], lastPresenceAt: undefined }),
   reset: () => {
     persistSessionId(undefined);
     set(INITIAL_STATE);
@@ -112,6 +114,7 @@ export const sessionStore = {
   setRealtimeScoresStatus: (status: RealtimeChannelStatus) =>
     useSessionStore.getState().setRealtimeScoresStatus(status),
   touchPresence: () => useSessionStore.getState().touchPresence(),
+  clearPresenceState: () => useSessionStore.getState().clearPresenceState(),
   reset: () => useSessionStore.getState().reset(),
 };
 

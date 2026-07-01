@@ -131,6 +131,13 @@ export const connectedPlayerSchema = z.preprocess(
   })
 );
 
+const connectedPlayerFieldsSchema = z.object({
+  playerId: z.string().min(1),
+  playerName: z.string().min(1),
+  teamId: z.string().nullable().optional().default(null),
+  joinedAt: timestampSchema.optional().default(0),
+});
+
 export const sessionStateChangePayloadSchema = z.preprocess(
   normalizeRealtimePayload,
   z.object({
@@ -153,7 +160,7 @@ export const presenceUpdatePayloadSchema = z.preprocess(
   z.object({
     sessionId: z.string().min(1).optional(),
     updatedAt: timestampSchema.optional().default(0),
-    connectedPlayers: z.array(connectedPlayerSchema),
+    connectedPlayers: z.array(connectedPlayerFieldsSchema).optional().default([]),
   })
 );
 
