@@ -25,7 +25,6 @@ type SetupFormProps = {
   startDisabled?: boolean;
   startDisabledReason?: string;
   fieldsDisabled?: boolean;
-  fieldsDisabledReason?: string;
 };
 
 type GlobalErrorMap = Partial<
@@ -49,7 +48,6 @@ export function SetupForm({
   startDisabled = false,
   startDisabledReason,
   fieldsDisabled = false,
-  fieldsDisabledReason,
 }: SetupFormProps) {
   const [activePassIndex, setActivePassIndex] = useState(0);
   const [passErrors, setPassErrors] = useState<PassFieldErrors>({});
@@ -156,10 +154,6 @@ export function SetupForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex w-full flex-col gap-6">
-      {fieldsDisabled && fieldsDisabledReason ? (
-        <p className="rounded-sm bg-zinc-100 px-4 py-3 text-sm text-zinc-600">{fieldsDisabledReason}</p>
-      ) : null}
-
       <div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">
           Session settings
