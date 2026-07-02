@@ -53,7 +53,20 @@ export function ControllerPage() {
   };
 
   if (sessionState.phase === "idle") {
-    if (notaAuth.requiresAuth && !notaAuth.loading && !notaAuth.authenticated) {
+    if (notaAuth.loading) {
+      return (
+        <div className="min-h-screen bg-background px-4 py-8 text-foreground md:px-8">
+          <div className="mx-auto flex w-full max-w-lg flex-col gap-6">
+            <header className="flex justify-center">
+              <NotaAppNav />
+            </header>
+            <p className="text-center text-sm text-zinc-500">Checking sign-in status…</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (notaAuth.requiresAuth && !notaAuth.authenticated) {
       return (
         <div className="min-h-screen bg-background px-4 py-8 text-foreground md:px-8">
           <div className="mx-auto flex w-full max-w-lg flex-col gap-6">

@@ -49,7 +49,7 @@ export async function apiRequest<T>(
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
     if (response.status === 401) {
-      throw new ApiError("Not signed in to NOTA. Sign in from the Controller tab.", response.status);
+      throw new ApiError("Sign in to NOTA before creating a session.", response.status);
     }
     throw new ApiError(formatApiErrorDetail(response.status, detail), response.status);
   }

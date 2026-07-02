@@ -12,6 +12,16 @@ type NotaAuthStatus = {
   source: "env" | "supabase" | null;
   loading: boolean;
   error: string | null;
+  requiresAuth: boolean;
+  signInAvailable: boolean;
+};
+
+type SessionResponse = {
+  requiresAuth?: boolean;
+  supabaseConfigured?: boolean;
+  authenticated?: boolean;
+  email?: string | null;
+  source?: "env" | "supabase";
 };
 
 async function readVerifiedAuthState() {
@@ -38,16 +48,16 @@ export function useNotaAuth() {
     source: null,
     loading: true,
     error: null,
+    requiresAuth: false,
+    signInAvailable: isSupabaseConfigured(),
   });
 
   const refresh = useCallback(async () => {
     try {
       const sessionResponse = await fetch("/api/auth/nota/session");
-      const sessionData = (await sessionResponse.json()) as {
-        authenticated?: boolean;
-        email?: string | null;
-        source?: "env" | "supabase";
-      };
+      const sessionData = (await sessionResponse.json()) as SessionResponse;
+      const requiresAuth = Boolean(sessionData.requiresAuth);
+      const signInAvailable = Boolean(sessionData.supabaseConfigured) && isSupabaseConfigured();
 
       if (sessionData.source === "env" && sessionData.authenticated) {
         setStatus({
@@ -56,11 +66,13 @@ export function useNotaAuth() {
           source: "env",
           loading: false,
           error: null,
+          requiresAuth,
+          signInAvailable,
         });
         return;
       }
 
-      if (isSupabaseConfigured()) {
+      if (signInAvailable) {
         const verified = await readVerifiedAuthState();
         setStatus({
           authenticated: verified.authenticated,
@@ -68,6 +80,8 @@ export function useNotaAuth() {
           source: verified.authenticated ? "supabase" : null,
           loading: false,
           error: null,
+          requiresAuth,
+          signInAvailable,
         });
         return;
       }
@@ -78,6 +92,8 @@ export function useNotaAuth() {
         source: sessionData.authenticated ? "supabase" : null,
         loading: false,
         error: null,
+        requiresAuth,
+        signInAvailable,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not check sign-in status";
@@ -103,13 +119,14 @@ export function useNotaAuth() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent) => {
       void readVerifiedAuthState().then((verified) => {
-        setStatus({
+        setStatus((prev) => ({
+          ...prev,
           authenticated: verified.authenticated,
           email: verified.email,
           source: verified.authenticated ? "supabase" : null,
           loading: false,
           error: null,
-        });
+        }));
       });
     });
 
@@ -122,7 +139,9 @@ export function useNotaAuth() {
 
       try {
         if (!isSupabaseConfigured()) {
-          throw new Error("Sign-in is not configured");
+          throw new Error(
+            "Sign-in is not available in the browser. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, then redeploy."
+          );
         }
 
         const supabase = getSupabaseBrowserClient();
@@ -142,13 +161,14 @@ export function useNotaAuth() {
         }
 
         const verified = await readVerifiedAuthState();
-        setStatus({
+        setStatus((prev) => ({
+          ...prev,
           authenticated: verified.authenticated,
           email: verified.email,
           source: verified.authenticated ? "supabase" : null,
           loading: false,
           error: null,
-        });
+        }));
       } catch (error) {
         const message = error instanceof Error ? error.message : "Sign-in failed";
         setStatus((prev) => ({ ...prev, loading: false, error: message }));
@@ -165,8 +185,13 @@ export function useNotaAuth() {
   }, [refresh]);
 
   return {
-    ...status,
-    requiresAuth: isSupabaseConfigured(),
+    authenticated: status.authenticated,
+    email: status.email,
+    source: status.source,
+    loading: status.loading,
+    error: status.error,
+    requiresAuth: status.requiresAuth,
+    signInAvailable: status.signInAvailable,
     signIn,
     signOut,
     refresh,

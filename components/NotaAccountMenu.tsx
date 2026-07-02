@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useNotaAuth } from "@/hooks/useNotaAuth";
-import { isSupabaseConfigured } from "@/lib/config/api";
 
 function AccountIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
@@ -51,7 +50,7 @@ export function NotaAccountMenu() {
     };
   }, [open]);
 
-  if (!isSupabaseConfigured() || auth.loading) {
+  if (!auth.requiresAuth || auth.loading) {
     return null;
   }
 

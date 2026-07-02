@@ -4,7 +4,10 @@ import { useState } from "react";
 import type { useNotaAuth } from "@/hooks/useNotaAuth";
 
 type NotaSignInProps = {
-  auth: Pick<ReturnType<typeof useNotaAuth>, "signIn" | "loading" | "error">;
+  auth: Pick<
+    ReturnType<typeof useNotaAuth>,
+    "signIn" | "loading" | "error" | "signInAvailable"
+  >;
 };
 
 export function NotaSignIn({ auth }: NotaSignInProps) {
@@ -28,49 +31,58 @@ export function NotaSignIn({ auth }: NotaSignInProps) {
     <div className="rounded-sm bg-white p-5 ring-1 ring-zinc-200">
       <h2 className="font-display text-xl font-semibold text-zinc-900">Sign in to NOTA</h2>
       <p className="mt-1 text-sm text-zinc-600">
-        Sign in to start a session and link player phones.
+        Sign in to create a session and link player phones.
       </p>
 
-      <form onSubmit={(event) => void handleSubmit(event)} className="mt-5 flex flex-col gap-4">
-        <label className="flex flex-col gap-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">
-            Email
-          </span>
-          <input
-            type="email"
-            autoComplete="username"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-            className="rounded-sm border border-zinc-300 bg-white px-4 py-3 text-zinc-900 outline-none focus:border-zinc-500"
-            placeholder="coach@example.com"
-          />
-        </label>
+      {!auth.signInAvailable ? (
+        <p className="mt-5 rounded-sm bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Sign-in is required, but the browser is missing Supabase config. Set{" "}
+          <code className="font-mono text-xs">NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
+          <code className="font-mono text-xs">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>, then
+          redeploy.
+        </p>
+      ) : (
+        <form onSubmit={(event) => void handleSubmit(event)} className="mt-5 flex flex-col gap-4">
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">
+              Email
+            </span>
+            <input
+              type="email"
+              autoComplete="username"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              className="rounded-sm border border-zinc-300 bg-white px-4 py-3 text-zinc-900 outline-none focus:border-zinc-500"
+              placeholder="coach@example.com"
+            />
+          </label>
 
-        <label className="flex flex-col gap-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">
-            Password
-          </span>
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            className="rounded-sm border border-zinc-300 bg-white px-4 py-3 text-zinc-900 outline-none focus:border-zinc-500"
-          />
-        </label>
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">
+              Password
+            </span>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              className="rounded-sm border border-zinc-300 bg-white px-4 py-3 text-zinc-900 outline-none focus:border-zinc-500"
+            />
+          </label>
 
-        <button
-          type="submit"
-          disabled={submitting || auth.loading}
-          className="rounded-sm bg-zinc-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
-        >
-          {submitting ? "Signing in…" : "Sign in"}
-        </button>
+          <button
+            type="submit"
+            disabled={submitting || auth.loading}
+            className="rounded-sm bg-zinc-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
+          >
+            {submitting ? "Signing in…" : "Sign in"}
+          </button>
 
-        {auth.error ? <p className="text-sm text-red-600">{auth.error}</p> : null}
-      </form>
+          {auth.error ? <p className="text-sm text-red-600">{auth.error}</p> : null}
+        </form>
+      )}
     </div>
   );
 }
