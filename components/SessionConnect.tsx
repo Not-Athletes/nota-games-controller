@@ -13,24 +13,18 @@ type SessionConnectProps = {
   setupValues: SetupInput;
   workVolume: number;
   restVolume: number;
-  enabled: boolean;
 };
 
 export function SessionConnect({
   setupValues,
   workVolume,
   restVolume,
-  enabled,
 }: SessionConnectProps) {
   const { sessionId, statusLabel } = useSessionState();
   const { createSession, disconnectSession } = useSessionOrchestration();
   const [creating, setCreating] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  if (!enabled) {
-    return null;
-  }
 
   const isOpen = Boolean(sessionId);
   const isActive = statusLabel === "Active";

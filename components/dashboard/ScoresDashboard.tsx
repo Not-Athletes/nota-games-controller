@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import { NotaAppNav } from "@/components/NotaAppNav";
 import { useSessionController } from "@/contexts/SessionControllerContext";
-import { isNotaApiConfigured } from "@/lib/config/api";
 import { teamDisplayKey } from "@/lib/session/playerTeams";
 import type { LeaderboardEntry } from "@/types/leaderboard";
 import { useSessionStore } from "@/stores/sessionStore";
@@ -129,7 +128,7 @@ export function ScoresDashboard() {
         <NotaAppNav />
       </header>
 
-      {!sessionId && isNotaApiConfigured() ? (
+      {!sessionId ? (
         <p className="rounded-sm bg-zinc-50 p-5 text-sm text-zinc-600">
           Create a session on the Controller tab to see live scores.
         </p>

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import type { AuthChangeEvent } from "@supabase/supabase-js";
-import { isNotaApiConfigured, isSupabaseConfigured } from "@/lib/config/api";
+import { isSupabaseConfigured } from "@/lib/config/api";
 import { gameSessionManager } from "@/lib/session/gameSessionManager";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { subscribeToSession } from "@/realtime/sessionRealtime";
@@ -43,21 +43,19 @@ export function useSessionRealtime() {
 
       unsubscribe = cleanup;
 
-      if (isNotaApiConfigured()) {
-        if (!initialLeaderboardLoadedFor.has(sessionId!)) {
-          initialLeaderboardLoadedFor.add(sessionId!);
-          void gameSessionManager.refreshLeaderboard();
-        }
+      if (!initialLeaderboardLoadedFor.has(sessionId!)) {
+        initialLeaderboardLoadedFor.add(sessionId!);
+        void gameSessionManager.refreshLeaderboard();
+      }
 
-        if (!initialParticipantTeamsLoadedFor.has(sessionId!)) {
-          initialParticipantTeamsLoadedFor.add(sessionId!);
-          void gameSessionManager.refreshParticipantTeams();
-        }
+      if (!initialParticipantTeamsLoadedFor.has(sessionId!)) {
+        initialParticipantTeamsLoadedFor.add(sessionId!);
+        void gameSessionManager.refreshParticipantTeams();
+      }
 
-        if (!initialConnectedPlayersLoadedFor.has(sessionId!)) {
-          initialConnectedPlayersLoadedFor.add(sessionId!);
-          void gameSessionManager.refreshConnectedPlayers();
-        }
+      if (!initialConnectedPlayersLoadedFor.has(sessionId!)) {
+        initialConnectedPlayersLoadedFor.add(sessionId!);
+        void gameSessionManager.refreshConnectedPlayers();
       }
     }
 

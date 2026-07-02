@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { AuthChangeEvent } from "@supabase/supabase-js";
-import { isNotaApiConfigured, isSupabaseConfigured } from "@/lib/config/api";
+import { isSupabaseConfigured } from "@/lib/config/api";
 import { getVerifiedUser } from "@/lib/supabase/auth-helpers";
 import { getSupabaseBrowserClient, syncSupabaseRealtimeAuth } from "@/lib/supabase/browser";
 
@@ -41,17 +41,6 @@ export function useNotaAuth() {
   });
 
   const refresh = useCallback(async () => {
-    if (!isNotaApiConfigured()) {
-      setStatus({
-        authenticated: true,
-        email: null,
-        source: null,
-        loading: false,
-        error: null,
-      });
-      return;
-    }
-
     try {
       const sessionResponse = await fetch("/api/auth/nota/session");
       const sessionData = (await sessionResponse.json()) as {
@@ -177,7 +166,7 @@ export function useNotaAuth() {
 
   return {
     ...status,
-    requiresAuth: isNotaApiConfigured() && isSupabaseConfigured(),
+    requiresAuth: isSupabaseConfigured(),
     signIn,
     signOut,
     refresh,

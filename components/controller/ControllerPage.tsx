@@ -30,7 +30,7 @@ export function ControllerPage() {
     restVolume,
     defaultSetup,
   } = useSessionController();
-  const { sessionId, backendEnabled } = useSessionOrchestration();
+  const { sessionId } = useSessionOrchestration();
   const notaAuth = useNotaAuth();
 
   const persistSetupValues = (config: SetupInput) => {
@@ -38,8 +38,8 @@ export function ControllerPage() {
     localStorage.setItem("nota_class_controller_setup", JSON.stringify(config));
   };
 
-  const sessionOpen = backendEnabled && Boolean(sessionId);
-  const startDisabled = backendEnabled && !sessionId;
+  const sessionOpen = Boolean(sessionId);
+  const startDisabled = !sessionId;
   const startDisabledReason = "Create a session first so phones can join before you start the session.";
 
   const handleStartSession = (config: SetupInput) => {
@@ -73,14 +73,11 @@ export function ControllerPage() {
             <NotaAppNav />
           </header>
 
-          {backendEnabled ? (
-            <SessionConnect
-              setupValues={setupValues}
-              workVolume={workVolume}
-              restVolume={restVolume}
-              enabled={backendEnabled}
-            />
-          ) : null}
+          <SessionConnect
+            setupValues={setupValues}
+            workVolume={workVolume}
+            restVolume={restVolume}
+          />
 
           <SetupForm
             values={setupValues}

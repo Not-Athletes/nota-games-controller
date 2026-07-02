@@ -1,6 +1,5 @@
 import type { z } from "zod";
 import { dashboardApiErrorSchema, parseDashboardApi } from "@/lib/api/dashboard/schemas";
-import { isNotaApiConfigured } from "@/lib/config/api";
 
 export class ApiError extends Error {
   constructor(
@@ -38,10 +37,6 @@ export async function apiRequest<T>(
   init?: RequestInit,
   responseSchema?: z.ZodType<T>
 ): Promise<T> {
-  if (!isNotaApiConfigured()) {
-    throw new Error("NOTA API is not configured (set NEXT_PUBLIC_NOTA_API_BASE_URL)");
-  }
-
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const response = await fetch(`/api/nota${normalizedPath}`, {
     ...init,

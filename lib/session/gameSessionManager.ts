@@ -1,7 +1,6 @@
 import { toBackendSessionConfig } from "@/lib/api/dashboard/sessionConfig";
 import type { SessionStateChangePayload } from "@/lib/api/dashboard/schemas";
 import { CURRENT_EVENT } from "@/lib/config/event";
-import { isNotaApiConfigured } from "@/lib/config/api";
 import type { GameStatePayload } from "@/lib/gameState/types";
 import {
   configureGameStateSync,
@@ -76,7 +75,7 @@ function applyRemoteGameStatePayload(
  */
 export const gameSessionManager = {
   isEnabled() {
-    return isNotaApiConfigured();
+    return true;
   },
 
   onRemoteGameState(listener: RemoteGameStateListener | null) {
@@ -89,8 +88,6 @@ export const gameSessionManager = {
   },
 
   async createSession(config: SessionConfig) {
-    if (!isNotaApiConfigured()) return;
-
     try {
       const session = await sessionService.createSession({
         title: CURRENT_EVENT.name,
@@ -112,7 +109,7 @@ export const gameSessionManager = {
   async disconnectSession() {
     const { sessionId, status } = sessionStore.getState();
 
-    if (sessionId && isNotaApiConfigured() && status !== "ended") {
+    if (sessionId && status !== "ended") {
       try {
         const response = await sessionService.patchState(sessionId, { status: "ended" });
         const gameState = patchResponseGameState(response);
@@ -131,7 +128,7 @@ export const gameSessionManager = {
 
   async ensureSessionActive() {
     const { sessionId, status } = sessionStore.getState();
-    if (!sessionId || !isNotaApiConfigured() || status === "active" || status === "ended") {
+    if (!sessionId || status === "active" || status === "ended") {
       return;
     }
 
@@ -141,7 +138,7 @@ export const gameSessionManager = {
 
   syncGameState(payload: GameStatePayload) {
     const { sessionId } = sessionStore.getState();
-    if (!sessionId || !isNotaApiConfigured()) return;
+    if (!sessionId) return;
 
     const patch = toBackendStatePatch(payload);
     if (!patch) return;
@@ -151,7 +148,7 @@ export const gameSessionManager = {
 
   async syncGameStateNow(payload: GameStatePayload) {
     const { sessionId } = sessionStore.getState();
-    if (!sessionId || !isNotaApiConfigured()) return;
+    if (!sessionId) return;
 
     await syncGameStateImmediate(sessionId, payload);
   },
@@ -164,7 +161,7 @@ export const gameSessionManager = {
     const { sessionId, status } = sessionStore.getState();
     if (status === "ended") return;
 
-    if (!sessionId || !isNotaApiConfigured()) {
+    if (!sessionId) {
       sessionStore.setStatus("ended");
       return;
     }
@@ -188,7 +185,7 @@ export const gameSessionManager = {
 
   async refreshLeaderboard() {
     const { sessionId } = sessionStore.getState();
-    if (!sessionId || !isNotaApiConfigured()) return;
+    if (!sessionId) return;
 
     try {
       const leaderboard = await leaderboardService.fetchLeaderboard(sessionId);
@@ -201,7 +198,7 @@ export const gameSessionManager = {
   /** Load team names from GET /participants (handoff: resolved Red/Blue via teams.name). */
   async refreshParticipantTeams() {
     const { sessionId } = sessionStore.getState();
-    if (!sessionId || !isNotaApiConfigured()) return;
+    if (!sessionId) return;
 
     try {
       const participants = await participantService.fetchParticipants(sessionId);
@@ -214,7 +211,7 @@ export const gameSessionManager = {
   /** Bootstrap player list from REST when Realtime presence has not arrived yet. */
   async refreshConnectedPlayers() {
     const { sessionId, lastPresenceAt } = sessionStore.getState();
-    if (!sessionId || !isNotaApiConfigured() || lastPresenceAt) return;
+    if (!sessionId || lastPresenceAt) return;
 
     try {
       const players = await participantService.fetchJoinedParticipants(sessionId);
@@ -237,7 +234,7 @@ export const gameSessionManager = {
 
   async removePlayerFromSession(playerId: string) {
     const { sessionId } = sessionStore.getState();
-    if (!sessionId || !isNotaApiConfigured()) {
+    if (!sessionId) {
       throw new Error("No active session");
     }
 
