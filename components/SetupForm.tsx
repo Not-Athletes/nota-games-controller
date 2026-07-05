@@ -4,27 +4,21 @@ import { useState } from "react";
 import { Copy, Plus, X } from "lucide-react";
 import { createDefaultPass } from "@/lib/session/config";
 import { setupSchema, type SetupSchema } from "@/lib/validation";
-import type { SpotifyStatus } from "@/lib/spotify";
 import type { PassConfig, SetupInput } from "@/types/session";
-import { MaxTrackPlayField } from "@/components/MaxTrackPlayField";
 import {
   PassConfigFields,
   passErrorsFromZodIssues,
   type PassFieldErrors,
 } from "@/components/PassConfigFields";
 import { PassTabs } from "@/components/PassTabs";
-import { SpotifySettings } from "@/components/SpotifySettings";
 
 type SetupFormProps = {
   values: SetupInput;
   onValuesChange: (values: SetupInput) => void;
-  onStart: (config: SetupInput) => void;
-  spotifyStatus: SpotifyStatus;
-  onConnectSpotify: () => void;
-  onDisconnectSpotify: () => void;
-  startDisabled?: boolean;
-  startDisabledReason?: string;
+  onStart: (config: SetupInput) => void | Promise<void>;
   fieldsDisabled?: boolean;
+  sessionOpen?: boolean;
+  startHelperText?: string;
 };
 
 type GlobalErrorMap = Partial<
@@ -42,16 +36,15 @@ export function SetupForm({
   values,
   onValuesChange,
   onStart,
-  spotifyStatus,
-  onConnectSpotify,
-  onDisconnectSpotify,
-  startDisabled = false,
-  startDisabledReason,
   fieldsDisabled = false,
+  sessionOpen = false,
+  startHelperText,
 }: SetupFormProps) {
   const [activePassIndex, setActivePassIndex] = useState(0);
   const [passErrors, setPassErrors] = useState<PassFieldErrors>({});
   const [globalErrors, setGlobalErrors] = useState<GlobalErrorMap>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
 
   const multiPass = values.passes.length > 1;
   const activePass = values.passes[activePassIndex] ?? values.passes[0];
@@ -60,18 +53,6 @@ export function SetupForm({
     const passes = [...values.passes];
     passes[index] = pass;
     onValuesChange({ ...values, passes });
-  };
-
-  const updateGlobals = (
-    globals: Pick<SetupInput, "maxTrackPlaySeconds" | "spotifyEnabled" | "spotifyPlaylistUri">
-  ) => {
-    onValuesChange({ ...values, ...globals });
-  };
-
-  const updateSpotify = (
-    spotify: Pick<SetupInput, "spotifyEnabled" | "spotifyPlaylistUri">
-  ) => {
-    onValuesChange({ ...values, ...spotify });
   };
 
   const handleAddPass = () => {
@@ -144,12 +125,26 @@ export function SetupForm({
 
       setGlobalErrors(nextGlobalErrors);
       setPassErrors(nextPassErrors);
+      const globalMessage =
+        nextGlobalErrors.spotifyPlaylistUri ?? nextGlobalErrors.maxTrackPlaySeconds;
+      if (globalMessage) {
+        setStartError(`${globalMessage} Check the Spotify panel.`);
+      }
       return;
     }
 
     setGlobalErrors({});
     setPassErrors({});
-    onStart(parsed.data);
+    setStartError(null);
+    setSubmitting(true);
+    void Promise.resolve(onStart(parsed.data))
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : "Could not start session";
+        setStartError(message);
+      })
+      .finally(() => {
+        setSubmitting(false);
+      });
   };
 
   return (
@@ -222,39 +217,21 @@ export function SetupForm({
 
       </div>
 
-      <div>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">
-          Global settings
-        </p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <SpotifySettings
-            status={spotifyStatus}
-            onConnect={onConnectSpotify}
-            onDisconnect={onDisconnectSpotify}
-            values={values}
-            onChange={updateSpotify}
-            errors={{ spotifyPlaylistUri: globalErrors.spotifyPlaylistUri }}
-            disabled={fieldsDisabled}
-          />
-          <MaxTrackPlayField
-            value={values.maxTrackPlaySeconds}
-            onChange={(maxTrackPlaySeconds) => updateGlobals({ ...values, maxTrackPlaySeconds })}
-            error={globalErrors.maxTrackPlaySeconds}
-            disabled={fieldsDisabled}
-          />
-        </div>
-      </div>
-
       <button
         type="submit"
-        disabled={startDisabled}
+        disabled={submitting}
         className="rounded-sm bg-[#1DB954] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#18a449] disabled:cursor-not-allowed disabled:bg-zinc-300"
       >
-        Start the session
+        {submitting
+          ? sessionOpen
+            ? "Starting…"
+            : "Creating session…"
+          : sessionOpen
+            ? "Start the session"
+            : "Create session"}
       </button>
-      {startDisabled && startDisabledReason ? (
-        <p className="text-sm text-zinc-500">{startDisabledReason}</p>
-      ) : null}
+      {startHelperText ? <p className="text-sm text-zinc-500">{startHelperText}</p> : null}
+      {startError ? <p className="text-sm text-red-600">{startError}</p> : null}
     </form>
   );
 }

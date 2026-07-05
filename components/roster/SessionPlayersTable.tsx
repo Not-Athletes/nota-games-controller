@@ -7,14 +7,7 @@ import { useSessionOrchestration } from "@/hooks/useSessionOrchestration";
 import { useSessionState } from "@/hooks/useSessionState";
 import { gameSessionManager } from "@/lib/session/gameSessionManager";
 
-function formatJoinedAt(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-export function SessionPlayersTable() {
+export function SessionPlayersTable({ compact = false }: { compact?: boolean }) {
   const { players, hasSession } = useSessionParticipants();
   const { removePlayerFromSession } = useSessionOrchestration();
   const { statusLabel } = useSessionState();
@@ -44,32 +37,32 @@ export function SessionPlayersTable() {
   };
 
   return (
-    <section className="rounded-sm bg-zinc-50 p-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">Players</p>
-      </div>
-
-      <p className="mt-1 text-sm text-zinc-600">
-        Phones join by scanning the session QR on this tab. Remove a player if they joined by
-        mistake or need to leave early.
-      </p>
+    <section className={compact ? "" : "rounded-sm bg-zinc-50 p-5"}>
+      {!compact ? (
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">Players</p>
+        </div>
+      ) : null}
 
       {!hasSession ? (
-        <p className="mt-4 text-sm text-zinc-500">
-          {gameSessionManager.isEnabled()
-            ? "Create a session on the Controller tab first."
-            : "Connect the NOTA API to enable live player join."}
-        </p>
+        <p className="mt-4 text-sm text-zinc-500">Create a session on the Controller first.</p>
       ) : players.length === 0 ? (
         <p className="mt-4 text-sm text-zinc-500">Waiting for the first phone to join…</p>
       ) : (
-        <div className="mt-4 overflow-x-auto rounded-sm bg-white ring-1 ring-zinc-200">
+        <div
+          className={`rounded-sm bg-white ring-1 ring-zinc-200 ${
+            compact ? "mt-0" : "mt-4 overflow-x-auto"
+          }`}
+        >
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-zinc-200 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
+            <thead
+              className={`border-b border-zinc-200 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500 ${
+                compact ? "sticky top-0 bg-white" : ""
+              }`}
+            >
               <tr>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Team</th>
-                <th className="px-4 py-3">Joined</th>
                 {canRemove ? <th className="px-4 py-3 text-center">Actions</th> : null}
               </tr>
             </thead>
@@ -79,10 +72,13 @@ export function SessionPlayersTable() {
 
                 return (
                   <tr key={player.playerId} className="border-b border-zinc-100 last:border-b-0">
-                    <td className="px-4 py-3 font-medium text-zinc-900">{player.playerName}</td>
-                    <td className="px-4 py-3 text-zinc-600">{player.teamName ?? "—"}</td>
-                    <td className="px-4 py-3 tabular-nums text-zinc-600">
-                      {formatJoinedAt(player.joinedAt)}
+                    <td
+                      className={`px-4 py-3 font-medium text-zinc-900 ${compact ? "max-w-[7rem] truncate" : ""}`}
+                    >
+                      {player.playerName}
+                    </td>
+                    <td className={`px-4 py-3 text-zinc-600 ${compact ? "max-w-[5rem] truncate" : ""}`}>
+                      {player.teamName ?? "—"}
                     </td>
                     {canRemove ? (
                       <td className="px-4 py-3">

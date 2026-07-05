@@ -26,7 +26,12 @@ function formatApiErrorDetail(status: number, detail: string) {
       return apiError.data.error;
     }
   } catch {
-    // Plain-text error body
+    // Plain-text or HTML error body
+  }
+
+  const preMatch = detail.match(/<pre>([^<]+)<\/pre>/i);
+  if (preMatch?.[1]) {
+    return preMatch[1].trim();
   }
 
   return detail;

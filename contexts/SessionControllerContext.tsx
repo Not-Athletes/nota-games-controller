@@ -90,8 +90,7 @@ function publishSnapshot(state: SessionState, config: SessionConfig | null) {
 }
 
 /**
- * Lives at the app root so session timers and Spotify survive navigation between
- * Controller (/), Players (/players), and Scores (/scores).
+ * Lives at the app root so session timers and Spotify survive in-app updates.
  */
 export function SessionControllerProvider({ children }: { children: ReactNode }) {
   const [setupValues, setSetupValues] = useState<SetupInput>(readSetupFromStorage);

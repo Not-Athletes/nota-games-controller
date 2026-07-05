@@ -14,6 +14,7 @@ type SpotifySettingsProps = {
     spotifyPlaylistUri?: string;
   };
   disabled?: boolean;
+  compact?: boolean;
 };
 
 export function SpotifySettings({
@@ -24,6 +25,7 @@ export function SpotifySettings({
   onChange,
   errors = {},
   disabled = false,
+  compact = false,
 }: SpotifySettingsProps) {
   const isConnected = status.authenticated && status.playerReady;
   const isPending = status.authenticated && !status.playerReady;
@@ -38,12 +40,10 @@ export function SpotifySettings({
       : "Not connected";
 
   return (
-    <div
-      className={`flex flex-col rounded-sm sm:col-span-2 lg:col-span-2 ${
-        disabled ? "bg-zinc-100/80" : "bg-zinc-50"
-      }`}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 p-5">
+    <div className={`flex flex-col ${compact ? "" : "rounded-sm sm:col-span-2 lg:col-span-2"} ${disabled && !compact ? "bg-zinc-100/80" : compact ? "" : "bg-zinc-50"}`}>
+      <div
+        className={`flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 ${compact ? "pb-4" : "p-5"}`}
+      >
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm border border-zinc-200 bg-white p-2">
             <Image
@@ -84,9 +84,11 @@ export function SpotifySettings({
         </div>
       </div>
 
-      {status.error ? <p className="px-5 pt-3 text-sm text-red-400">{status.error}</p> : null}
+      {status.error ? (
+        <p className={`text-sm text-red-400 ${compact ? "pt-3" : "px-5 pt-3"}`}>{status.error}</p>
+      ) : null}
 
-      <div className="flex flex-col p-5">
+      <div className={`flex flex-col ${compact ? "pt-4" : "p-5"}`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span
             className={`text-xs font-semibold uppercase tracking-[0.1em] ${

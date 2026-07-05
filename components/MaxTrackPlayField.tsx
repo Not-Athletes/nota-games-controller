@@ -5,6 +5,7 @@ type MaxTrackPlayFieldProps = {
   onChange: (value: number) => void;
   error?: string;
   disabled?: boolean;
+  compact?: boolean;
 };
 
 export function MaxTrackPlayField({
@@ -12,11 +13,12 @@ export function MaxTrackPlayField({
   onChange,
   error,
   disabled = false,
+  compact = false,
 }: MaxTrackPlayFieldProps) {
   return (
     <label
-      className={`flex min-h-36 flex-col rounded-sm p-5 sm:col-span-1 ${
-        disabled ? "bg-zinc-100/80" : "bg-zinc-50"
+      className={`flex flex-col ${compact ? "gap-2" : "min-h-36 rounded-sm p-5 sm:col-span-1"} ${
+        disabled && !compact ? "bg-zinc-100/80" : compact ? "" : "bg-zinc-50"
       }`}
     >
       <span
@@ -37,7 +39,9 @@ export function MaxTrackPlayField({
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(Number(event.target.value))}
-        className={`mt-auto rounded-sm border px-4 py-3 outline-none ring-0 transition ${
+        className={`rounded-sm border px-4 py-3 outline-none ring-0 transition ${
+          compact ? "mt-0" : "mt-auto"
+        } ${
           disabled
             ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400"
             : "border-zinc-300 bg-white text-zinc-900 focus:border-zinc-500"

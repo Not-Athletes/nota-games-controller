@@ -1,13 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 type SessionControlsProps = {
-  onEndSession: () => void;
   onResumeNextPass?: () => void;
   showResumeNextPass?: boolean;
-  sessionComplete?: boolean;
-  onGoHome?: () => void;
 };
 
 function ControlButton({
@@ -41,60 +36,16 @@ function ControlButton({
 }
 
 export function SessionControls({
-  onEndSession,
   onResumeNextPass,
   showResumeNextPass = false,
-  sessionComplete = false,
-  onGoHome,
 }: SessionControlsProps) {
-  const [confirmingEnd, setConfirmingEnd] = useState(false);
-
-  useEffect(() => {
-    if (!confirmingEnd) return;
-    const timeout = setTimeout(() => setConfirmingEnd(false), 5000);
-    return () => clearTimeout(timeout);
-  }, [confirmingEnd]);
-
-  if (sessionComplete && onGoHome) {
-    return (
-      <div className="grid grid-cols-1 gap-3">
-        <ControlButton label="Back to setup" tone="primary" onClick={onGoHome} />
-      </div>
-    );
+  if (!showResumeNextPass || !onResumeNextPass) {
+    return null;
   }
 
   return (
     <div className="grid grid-cols-1 gap-3">
-      {showResumeNextPass && onResumeNextPass ? (
-        <ControlButton
-          label="Start Next Pass"
-          tone="primary"
-          onClick={onResumeNextPass}
-        />
-      ) : null}
-      {confirmingEnd ? (
-        <div className="grid grid-cols-2 gap-3">
-          <ControlButton
-            label="Cancel"
-            tone="muted"
-            onClick={() => setConfirmingEnd(false)}
-          />
-          <ControlButton
-            label="Confirm End"
-            tone="danger"
-            onClick={() => {
-              setConfirmingEnd(false);
-              onEndSession();
-            }}
-          />
-        </div>
-      ) : (
-        <ControlButton
-          label="End Session"
-          tone="danger"
-          onClick={() => setConfirmingEnd(true)}
-        />
-      )}
+      <ControlButton label="Start Next Pass" tone="primary" onClick={onResumeNextPass} />
     </div>
   );
 }

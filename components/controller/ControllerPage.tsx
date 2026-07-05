@@ -3,13 +3,16 @@
 import { LiveSession } from "@/components/LiveSession";
 import { NotaAppNav } from "@/components/NotaAppNav";
 import { NotaSignIn } from "@/components/NotaSignIn";
-import { SessionConnect } from "@/components/SessionConnect";
+import { SessionPlayersPanel } from "@/components/roster/SessionPlayersPanel";
+import { SessionSpotifyPanel } from "@/components/roster/SessionSpotifyPanel";
+import { SessionEndFab } from "@/components/SessionEndFab";
 import { SetupForm } from "@/components/SetupForm";
 import { useSessionController } from "@/contexts/SessionControllerContext";
 import { useNotaAuth } from "@/hooks/useNotaAuth";
 import { useSessionOrchestration } from "@/hooks/useSessionOrchestration";
 import { setupToSessionConfig } from "@/lib/session/config";
 import type { SetupInput } from "@/types/session";
+import type { ReactNode } from "react";
 
 export function ControllerPage() {
   const {
@@ -17,20 +20,13 @@ export function ControllerPage() {
     setSetupValues,
     sessionConfig,
     sessionState,
-    spotifyStatus,
-    nowPlaying,
     startSession,
-    endSession,
-    goHome,
     resumeNextPass,
-    handleConnectSpotify,
-    handleDisconnectSpotify,
-    setSpotifyEnabled,
     workVolume,
     restVolume,
     defaultSetup,
   } = useSessionController();
-  const { sessionId } = useSessionOrchestration();
+  const { sessionId, createSession } = useSessionOrchestration();
   const notaAuth = useNotaAuth();
 
   const persistSetupValues = (config: SetupInput) => {
@@ -39,22 +35,29 @@ export function ControllerPage() {
   };
 
   const sessionOpen = Boolean(sessionId);
-  const startDisabled = !sessionId;
-  const startDisabledReason = "Create a session first so phones can join before you start the session.";
+  const showSidePanels =
+    !notaAuth.loading && (!notaAuth.requiresAuth || notaAuth.authenticated);
 
-  const handleStartSession = (config: SetupInput) => {
+  const handleStartSession = async (config: SetupInput) => {
     persistSetupValues(config);
-    void startSession(
-      setupToSessionConfig(config, {
-        workVolume,
-        restVolume,
-      })
-    );
+    const resolvedConfig = setupToSessionConfig(config, {
+      workVolume,
+      restVolume,
+    });
+
+    if (!sessionId) {
+      await createSession(resolvedConfig);
+      return;
+    }
+
+    await startSession(resolvedConfig);
   };
+
+  let main: ReactNode;
 
   if (sessionState.phase === "idle") {
     if (notaAuth.loading) {
-      return (
+      main = (
         <div className="min-h-screen bg-background px-4 py-8 text-foreground md:px-8">
           <div className="mx-auto flex w-full max-w-lg flex-col gap-6">
             <header className="flex justify-center">
@@ -64,10 +67,8 @@ export function ControllerPage() {
           </div>
         </div>
       );
-    }
-
-    if (notaAuth.requiresAuth && !notaAuth.authenticated) {
-      return (
+    } else if (notaAuth.requiresAuth && !notaAuth.authenticated) {
+      main = (
         <div className="min-h-screen bg-background px-4 py-8 text-foreground md:px-8">
           <div className="mx-auto flex w-full max-w-lg flex-col gap-6">
             <header className="flex justify-center">
@@ -77,31 +78,45 @@ export function ControllerPage() {
           </div>
         </div>
       );
+    } else {
+      main = (
+        <div className="min-h-screen bg-background px-4 py-8 text-foreground md:px-8">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+            <header className="flex justify-center">
+              <NotaAppNav />
+            </header>
+
+            <SetupForm
+              values={setupValues}
+              onValuesChange={persistSetupValues}
+              fieldsDisabled={sessionOpen}
+              sessionOpen={sessionOpen}
+              onStart={handleStartSession}
+              startHelperText={
+                sessionOpen
+                  ? "Session open — scan the QR on the right. Start the workout when ready."
+                  : "Create a session so phones can join via the QR panel."
+              }
+            />
+
+          </div>
+        </div>
+      );
     }
-
-    return (
+  } else {
+    main = (
       <div className="min-h-screen bg-background px-4 py-8 text-foreground md:px-8">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-          <header className="flex justify-center">
-            <NotaAppNav />
-          </header>
-
-          <SessionConnect
-            setupValues={setupValues}
-            workVolume={workVolume}
-            restVolume={restVolume}
-          />
-
-          <SetupForm
-            values={setupValues}
-            onValuesChange={persistSetupValues}
-            spotifyStatus={spotifyStatus}
-            onConnectSpotify={handleConnectSpotify}
-            onDisconnectSpotify={handleDisconnectSpotify}
-            fieldsDisabled={sessionOpen}
-            startDisabled={startDisabled}
-            startDisabledReason={startDisabled ? startDisabledReason : undefined}
-            onStart={handleStartSession}
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+          <LiveSession
+            state={sessionState}
+            config={
+              sessionConfig ??
+              setupToSessionConfig(defaultSetup, {
+                workVolume,
+                restVolume,
+              })
+            }
+            onResumeNextPass={() => void resumeNextPass()}
           />
         </div>
       </div>
@@ -109,23 +124,15 @@ export function ControllerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background px-4 py-8 text-foreground md:px-8">
-      <LiveSession
-        state={sessionState}
-        config={
-          sessionConfig ??
-          setupToSessionConfig(defaultSetup, {
-            workVolume,
-            restVolume,
-          })
-        }
-        spotifyStatus={spotifyStatus}
-        nowPlaying={nowPlaying}
-        onEndSession={endSession}
-        onResumeNextPass={() => void resumeNextPass()}
-        onGoHome={goHome}
-        onToggleSpotifyEnabled={(enabled) => void setSpotifyEnabled(enabled)}
-      />
-    </div>
+    <>
+      {main}
+      {showSidePanels ? (
+        <>
+          <SessionSpotifyPanel fieldsDisabled={sessionOpen && sessionState.phase === "idle"} />
+          {sessionId ? <SessionPlayersPanel /> : null}
+          {sessionId ? <SessionEndFab /> : null}
+        </>
+      ) : null}
+    </>
   );
 }

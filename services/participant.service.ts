@@ -74,8 +74,9 @@ export const participantService = {
   },
 
   async removeParticipant(sessionId: string, playerId: string) {
-    await apiRequest(`/dashboard/sessions/${sessionId}/participants/${playerId}`, {
+    await apiRequest(`/sessions/${sessionId}/leave`, {
       method: "DELETE",
+      body: JSON.stringify({ playerId }),
     });
   },
 };
