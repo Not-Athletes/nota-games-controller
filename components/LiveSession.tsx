@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { NotaAppNav } from "@/components/NotaAppNav";
 import { SessionScoresSection } from "@/components/dashboard/SessionScoresSection";
+import { LivePassCard } from "@/components/live/LivePassCard";
 import { SessionControls } from "@/components/SessionControls";
 import { useSessionScores, type TeamScore } from "@/hooks/useSessionScores";
 import type { Phase, SessionConfig, SessionState } from "@/types/session";
@@ -26,18 +27,6 @@ function formatSeconds(seconds: number) {
   const mins = Math.floor(safe / 60);
   const secs = safe % 60;
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-}
-
-function getProgressColor(progressPercent: number) {
-  const progress = Math.max(0, Math.min(100, progressPercent)) / 100;
-  const start = { r: 245, g: 158, b: 11 };
-  const end = { r: 34, g: 197, b: 94 };
-
-  const r = Math.round(start.r + (end.r - start.r) * progress);
-  const g = Math.round(start.g + (end.g - start.g) * progress);
-  const b = Math.round(start.b + (end.b - start.b) * progress);
-
-  return `rgb(${r}, ${g}, ${b})`;
 }
 
 const TEAM_CARD: Record<string, { card: string; label: string; score: string }> = {
@@ -87,10 +76,6 @@ export function LiveSession({
     return () => clearInterval(timer);
   }, [state.startedAtMs, state.endedAtMs]);
 
-  const progress =
-    state.totalIntervals > 0
-      ? Math.min(100, (state.completedIntervals / state.totalIntervals) * 100)
-      : 0;
   const currentElapsedSeconds = state.startedAtMs
     ? Math.max(0, Math.floor(((state.endedAtMs ?? nowMs) - state.startedAtMs) / 1000))
     : 0;
@@ -98,7 +83,7 @@ export function LiveSession({
   const isPassBreak = state.phase === "passBreak";
   const isPassPaused = isPassBreak && state.isPaused;
   const phaseDisplay = isPassBreak && !state.isPaused ? "PASS BREAK" : phaseLabel[state.phase];
-  const { teamScores, hasTeamScores } = useSessionScores();
+  const { teamScores } = useSessionScores();
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -106,72 +91,52 @@ export function LiveSession({
         <NotaAppNav />
       </header>
 
-      <div className="grid grid-cols-1 gap-4 text-sm text-zinc-700 md:grid-cols-3">
-        <div className="flex min-h-32 flex-col rounded-sm bg-zinc-50 p-5">
-          <div className="mb-2 flex items-start justify-between gap-3">
-            <p className="text-xs font-semibold tracking-[0.1em] text-zinc-500">TIMER</p>
-            {phaseDisplay ? (
-              <p className="text-right text-lg font-semibold tracking-wide text-zinc-900 md:text-xl">
-                {phaseDisplay}
-              </p>
-            ) : null}
-          </div>
-          {config.totalPasses > 1 ? (
-            <p className="mb-2 text-xs text-zinc-500">
-              Pass{" "}
-              <span className="font-semibold text-zinc-800">
-                {state.currentPass} of {config.totalPasses}
-              </span>
-            </p>
-          ) : null}
-          {isPassPaused ? (
-            <p className="mb-2 text-xs text-zinc-600">
-              Up next: {config.stations} stations × {config.roundsPerStation} rounds,{" "}
-              {config.workTime}s work
-            </p>
-          ) : null}
-          <p className="mt-auto self-start text-left font-display text-7xl font-bold tabular-nums text-zinc-900 md:text-6xl">
-            {isPassBreak ? "—" : formatSeconds(timerDisplaySeconds)}
-          </p>
-        </div>
-        <div className="flex min-h-32 flex-col rounded-sm bg-zinc-50 p-5 text-left">
-          <p className="mb-1 text-xs font-semibold tracking-[0.1em] text-zinc-500">STATION</p>
-          <p className="mt-auto self-start text-left font-display text-4xl font-bold leading-none text-zinc-900 md:text-5xl">
-            {state.currentStation} of {config.stations}
-          </p>
-        </div>
-        <div className="flex min-h-32 flex-col rounded-sm bg-zinc-50 p-5 text-left">
-          <p className="mb-1 text-xs font-semibold tracking-[0.1em] text-zinc-500">ROUND</p>
-          <p className="mt-auto self-start text-left font-display text-4xl font-bold leading-none text-zinc-900 md:text-5xl">
-            {state.currentRound} of {config.roundsPerStation}
-          </p>
-        </div>
-        <div className="flex min-h-32 flex-col rounded-sm bg-zinc-50 p-5 text-left md:col-span-2">
-          <p className="text-xs font-semibold tracking-[0.1em] text-zinc-500">PROGRESS</p>
-          <div className="mt-auto">
-            <div className="h-3 w-full overflow-hidden rounded-sm bg-zinc-200">
-              <div
-                className="h-full rounded-sm transition-all"
-                style={{
-                  width: `${progress}%`,
-                  backgroundColor: getProgressColor(progress),
-                }}
-              />
+      <div className="flex flex-col gap-4 text-sm text-zinc-700">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="flex min-h-32 flex-col rounded-sm bg-zinc-50 p-5 md:col-span-2">
+            <div className="mb-2 flex items-start justify-between gap-3">
+              <p className="text-xs font-semibold tracking-[0.1em] text-zinc-500">TIMER</p>
+              {phaseDisplay ? (
+                <p className="text-right text-lg font-semibold tracking-wide text-zinc-900 md:text-xl">
+                  {phaseDisplay}
+                </p>
+              ) : null}
             </div>
-            <p className="mt-2 text-xs text-zinc-500">
-              Progress {state.completedIntervals}/{state.totalIntervals}
+            <p className="mt-auto self-start text-left font-display text-7xl font-bold tabular-nums text-zinc-900 md:text-6xl">
+              {isPassBreak ? "—" : formatSeconds(timerDisplaySeconds)}
+            </p>
+          </div>
+          <div className="flex min-h-32 flex-col rounded-sm bg-zinc-50 p-5 text-left">
+            <p className="mb-1 text-xs font-semibold tracking-[0.1em] text-zinc-500">STATION</p>
+            <p className="mt-auto self-start text-left font-display text-4xl font-bold leading-none text-zinc-900 md:text-5xl">
+              {state.currentStation} of {config.stations}
+            </p>
+          </div>
+          <div className="flex min-h-32 flex-col rounded-sm bg-zinc-50 p-5 text-left">
+            <p className="mb-1 text-xs font-semibold tracking-[0.1em] text-zinc-500">ROUND</p>
+            <p className="mt-auto self-start text-left font-display text-4xl font-bold leading-none text-zinc-900 md:text-5xl">
+              {state.currentRound} of {config.roundsPerStation}
+            </p>
+          </div>
+          <LivePassCard
+            currentPass={state.currentPass}
+            totalPasses={config.totalPasses}
+            isPassPaused={isPassPaused}
+            config={config}
+          />
+          <div className="flex min-h-32 flex-col rounded-sm bg-zinc-50 p-5 text-left">
+            <p className="mb-1 text-xs font-semibold tracking-[0.1em] text-zinc-500">ELAPSED</p>
+            <p className="mt-auto self-start text-left font-display text-4xl font-bold leading-none text-zinc-900 md:text-5xl">
+              {formatSeconds(currentElapsedSeconds)}
             </p>
           </div>
         </div>
-        <div className="flex min-h-32 flex-col rounded-sm bg-zinc-50 p-5 text-left">
-          <p className="mb-1 text-xs font-semibold tracking-[0.1em] text-zinc-500">ELAPSED</p>
-          <p className="mt-auto self-start text-left font-display text-4xl font-bold leading-none text-zinc-900 md:text-5xl">
-            {formatSeconds(currentElapsedSeconds)}
-          </p>
+
+        <div className="grid w-full grid-cols-2 gap-4">
+          {teamScores.map((team) => (
+            <TeamScoreCard key={team.id} team={team} />
+          ))}
         </div>
-        {hasTeamScores
-          ? teamScores.map((team) => <TeamScoreCard key={team.id} team={team} />)
-          : null}
       </div>
 
       <SessionControls

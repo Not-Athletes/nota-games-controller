@@ -102,6 +102,11 @@ export function teamDisplayKey(
   return "unassigned";
 }
 
+export const DEFAULT_TEAM_SCORES = [
+  { id: "team-red", name: "Red", combinedScore: 0 },
+  { id: "team-blue", name: "Blue", combinedScore: 0 },
+] as const;
+
 export function hasPlayersMissingTeamRegistry(
   players: ConnectedPlayer[],
   lookup: PlayerTeamLookup

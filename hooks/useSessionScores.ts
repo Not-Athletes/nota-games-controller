@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { teamDisplayKey } from "@/lib/session/playerTeams";
+import {
+  DEFAULT_TEAM_SCORES,
+  teamDisplayKey,
+} from "@/lib/session/playerTeams";
 import type { LeaderboardEntry } from "@/types/leaderboard";
 import { useSessionStore } from "@/stores/sessionStore";
 
@@ -27,11 +30,17 @@ export function useSessionScores() {
     [leaderboard]
   );
 
-  const teams = useMemo((): TeamScore[] => {
-    const byTeam = new Map<string, TeamScore>();
+  const teamScores = useMemo((): TeamScore[] => {
+    const byTeam = new Map<string, TeamScore>(
+      DEFAULT_TEAM_SCORES.map((team) => [team.id, { ...team }])
+    );
 
     for (const entry of rankedPlayers) {
       const key = teamKey(entry);
+      if (key !== "team-red" && key !== "team-blue") {
+        continue;
+      }
+
       const existing = byTeam.get(key);
       if (existing) {
         existing.combinedScore += entry.totalXp;
@@ -44,14 +53,11 @@ export function useSessionScores() {
       }
     }
 
-    return Array.from(byTeam.values()).sort((a, b) => b.combinedScore - a.combinedScore);
+    return DEFAULT_TEAM_SCORES.map((team) => byTeam.get(team.id) ?? { ...team });
   }, [rankedPlayers]);
-
-  const teamScores = teams.filter((team) => team.id !== "unassigned");
 
   return {
     rankedPlayers,
     teamScores,
-    hasTeamScores: teamScores.length > 0,
   };
 }
