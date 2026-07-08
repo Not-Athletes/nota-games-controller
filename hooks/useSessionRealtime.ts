@@ -29,7 +29,8 @@ export function useSessionRealtime() {
       unsubscribe = undefined;
 
       const cleanup = await subscribeToSession(sessionId!, {
-        onLeaderboardUpdate: (entries) => sessionStore.setLeaderboard(entries),
+        onLeaderboardUpdate: ({ entries, teams }) =>
+          sessionStore.setLeaderboardFromRealtime(entries, teams),
         onPresenceUpdate: (players) => {
           sessionStore.setConnectedPlayers(players);
           void gameSessionManager.refreshParticipantTeamsIfNeeded(players);

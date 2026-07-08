@@ -6,6 +6,7 @@ import { SessionScoresSection } from "@/components/dashboard/SessionScoresSectio
 import { LivePassCard } from "@/components/live/LivePassCard";
 import { SessionControls } from "@/components/SessionControls";
 import { useSessionScores, type TeamScore } from "@/hooks/useSessionScores";
+import { teamTintStyles } from "@/lib/session/teamScores";
 import type { Phase, SessionConfig, SessionState } from "@/types/session";
 
 type LiveSessionProps = {
@@ -29,31 +30,19 @@ function formatSeconds(seconds: number) {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
-const TEAM_CARD: Record<string, { card: string; label: string; score: string }> = {
-  "team-red": {
-    card: "bg-gradient-to-b from-red-50 to-red-50/40",
-    label: "text-red-700",
-    score: "text-red-900",
-  },
-  "team-blue": {
-    card: "bg-gradient-to-b from-blue-50 to-blue-50/40",
-    label: "text-blue-700",
-    score: "text-blue-900",
-  },
-};
-
 function TeamScoreCard({ team }: { team: TeamScore }) {
-  const theme = TEAM_CARD[team.id] ?? {
-    card: "bg-zinc-50",
-    label: "text-zinc-500",
-    score: "text-zinc-900",
-  };
+  const tint = teamTintStyles(team.color);
 
   return (
-    <div className={`flex min-h-32 flex-col rounded-sm p-5 ${theme.card}`}>
-      <p className={`text-xs font-semibold tracking-[0.1em] ${theme.label}`}>{team.name}</p>
-      <p className={`mt-auto font-display text-4xl font-bold tabular-nums leading-none md:text-5xl ${theme.score}`}>
-        {team.combinedScore.toLocaleString()}
+    <div className="flex min-h-32 flex-col rounded-sm p-5" style={tint}>
+      <p className="text-xs font-semibold tracking-[0.1em]" style={{ color: team.color }}>
+        {team.name}
+      </p>
+      <p
+        className="mt-auto font-display text-4xl font-bold tabular-nums leading-none md:text-5xl"
+        style={{ color: team.color }}
+      >
+        {team.totalXp.toLocaleString()}
       </p>
     </div>
   );

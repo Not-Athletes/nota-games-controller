@@ -3,7 +3,7 @@
  *
  * Channels (controller + scoreboard):
  * - session:{id}:state  → session_state_change (controller publishes via REST PATCH)
- * - session:{id}:scores → leaderboard_update, presence_update (engine publishes after /motion)
+ * - session:{id}:scores → leaderboard_update (teams + normalized XP), presence_update
  *
  * Motion batches are HTTP-only (POST /sessions/:id/motion) — not a Realtime channel.
  * Do not subscribe to session:{id}:presence (mobile tracks; engine rebroadcasts via scores).
@@ -19,12 +19,13 @@ import {
   type LeaderboardEntry,
 } from "@/lib/api/dashboard/schemas";
 import { gameSessionManager } from "@/lib/session/gameSessionManager";
+import { mergeRealtimeTeamScores, type TeamScore } from "@/lib/session/teamScores";
 import { sessionStore } from "@/stores/sessionStore";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import type { ZodType } from "zod";
 
 export type SessionRealtimeHandlers = {
-  onLeaderboardUpdate: (entries: LeaderboardEntry[]) => void;
+  onLeaderboardUpdate: (payload: { entries: LeaderboardEntry[]; teams: TeamScore[] }) => void;
   onPresenceUpdate: (players: ConnectedPlayer[]) => void;
 };
 
@@ -84,7 +85,10 @@ export async function subscribeToSession(
     .on("broadcast", { event: "leaderboard_update" }, ({ payload }) => {
       const data = parseRealtimePayload(leaderboardUpdatePayloadSchema, payload, "leaderboard_update");
       if (data) {
-        handlers.onLeaderboardUpdate(data.leaderboard.map(realtimeEntryToLeaderboardEntry));
+        handlers.onLeaderboardUpdate({
+          entries: data.leaderboard.map(realtimeEntryToLeaderboardEntry),
+          teams: mergeRealtimeTeamScores(data.teams),
+        });
       }
     })
     .on("broadcast", { event: "presence_update" }, ({ payload }) => {

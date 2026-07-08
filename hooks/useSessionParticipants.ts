@@ -24,6 +24,7 @@ export function useSessionParticipants() {
           playerName: player.playerName,
           teamId: team.teamId,
           teamName: team.teamName,
+          teamColor: team.teamColor,
           joinedAt: player.joinedAt ? new Date(player.joinedAt).toISOString() : null,
         };
       })

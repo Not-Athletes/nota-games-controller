@@ -111,8 +111,16 @@ export const leaderboardResponseSchema = z.preprocess(
 export const realtimeLeaderboardEntrySchema = z.object({
   playerId: z.string().min(1),
   playerName: z.string().min(1),
+  teamId: z.string().nullable().optional().default(null),
   totalXp: z.number(),
   rank: z.number().int(),
+});
+
+export const realtimeTeamScoreSchema = z.object({
+  teamId: z.string().min(1),
+  name: z.string().min(1),
+  color: z.string().min(1),
+  totalXp: z.number(),
 });
 
 export const timestampSchema = z.union([z.number(), z.string()]).transform((value) => {
@@ -151,6 +159,7 @@ export const leaderboardUpdatePayloadSchema = z.preprocess(
   z.object({
     sessionId: z.string().min(1),
     updatedAt: timestampSchema.optional().default(0),
+    teams: z.array(realtimeTeamScoreSchema).optional().default([]),
     leaderboard: z.array(realtimeLeaderboardEntrySchema),
   })
 );
@@ -171,7 +180,7 @@ export const participantRowSchema = z.object({
   teamId: z.string().nullable().optional().default(null),
   teamName: z.string().nullable().optional(),
   joinedAt: z.string().nullable().optional(),
-  teams: z.object({ name: z.string() }).optional().nullable(),
+  teams: z.object({ name: z.string(), color: z.string().optional() }).optional().nullable(),
 });
 
 export const participantsListResponseSchema = z.preprocess(
@@ -226,12 +235,14 @@ export type SessionStateChangePayload = z.infer<typeof sessionStateChangePayload
 export type SessionStatePatchResponse = z.infer<typeof sessionStatePatchResponseSchema>;
 export type PresenceUpdatePayload = z.infer<typeof presenceUpdatePayloadSchema>;
 export type RealtimeLeaderboardEntry = z.infer<typeof realtimeLeaderboardEntrySchema>;
+export type RealtimeTeamScore = z.infer<typeof realtimeTeamScoreSchema>;
 export type SessionParticipant = {
   id: string;
   playerId: string;
   playerName: string;
   teamId: string | null;
   teamName: string | null;
+  teamColor: string | null;
   joinedAt: string | null;
 };
 
@@ -244,6 +255,7 @@ export function normalizeParticipantRow(
     playerName: row.playerName,
     teamId: row.teamId ?? null,
     teamName: row.teamName ?? row.teams?.name ?? null,
+    teamColor: row.teams?.color ?? null,
     joinedAt: row.joinedAt ?? null,
   };
 }
@@ -293,7 +305,7 @@ export function realtimeEntryToLeaderboardEntry(
     rank: entry.rank,
     playerId: entry.playerId,
     playerName: entry.playerName,
-    teamId: null,
+    teamId: entry.teamId ?? null,
     teamName: null,
     totalXp: entry.totalXp,
     overallRank: entry.rank,

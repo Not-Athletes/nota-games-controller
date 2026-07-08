@@ -1,16 +1,37 @@
 "use client";
 
-import { teamDisplayKey } from "@/lib/session/playerTeams";
-import { useSessionScores } from "@/hooks/useSessionScores";
-import type { LeaderboardEntry } from "@/types/leaderboard";
+import { useSessionScores, useTeamColorForEntry } from "@/hooks/useSessionScores";
+import { teamBadgeStyles } from "@/lib/session/teamScores";
 
-const TEAM_BADGE: Record<string, string> = {
-  "team-red": "bg-red-100 text-red-800",
-  "team-blue": "bg-blue-100 text-blue-800",
-};
+function TeamBadge({
+  teamName,
+  teamId,
+}: {
+  teamName: string | null | undefined;
+  teamId: string | null | undefined;
+}) {
+  const color = useTeamColorForEntry({ teamId: teamId ?? null, teamName: teamName ?? null });
 
-function teamKey(entry: LeaderboardEntry) {
-  return teamDisplayKey(entry.teamId, entry.teamName);
+  if (!teamName) {
+    return <span className="text-zinc-500">—</span>;
+  }
+
+  if (!color) {
+    return (
+      <span className="inline-flex rounded-sm bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-800">
+        {teamName}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="inline-flex rounded-sm px-2 py-0.5 text-xs font-semibold"
+      style={teamBadgeStyles(color)}
+    >
+      {teamName}
+    </span>
+  );
 }
 
 export function SessionScoresSection() {
@@ -41,13 +62,7 @@ export function SessionScoresSection() {
                   <td className="py-3 pr-4 font-medium text-zinc-900">{player.playerName}</td>
                   <td className="py-3 pr-4 tabular-nums">{player.totalXp.toLocaleString()}</td>
                   <td className="py-3">
-                    <span
-                      className={`inline-flex rounded-sm px-2 py-0.5 text-xs font-semibold ${
-                        TEAM_BADGE[teamKey(player)] ?? "bg-zinc-100 text-zinc-800"
-                      }`}
-                    >
-                      {player.teamName ?? "—"}
-                    </span>
+                    <TeamBadge teamName={player.teamName} teamId={player.teamId} />
                   </td>
                 </tr>
               ))}

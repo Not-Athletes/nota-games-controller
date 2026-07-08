@@ -4,6 +4,7 @@ import type { ConnectedPlayer } from "@/types/session-api";
 export type PlayerTeamInfo = {
   teamId: string | null;
   teamName: string | null;
+  teamColor: string | null;
 };
 
 export type PlayerTeamLookup = Record<string, PlayerTeamInfo>;
@@ -13,6 +14,7 @@ export function participantsToTeamLookup(
     playerId: string;
     teamId?: string | null;
     teamName?: string | null;
+    teamColor?: string | null;
   }>
 ): PlayerTeamLookup {
   const lookup: PlayerTeamLookup = {};
@@ -20,6 +22,7 @@ export function participantsToTeamLookup(
     lookup[participant.playerId] = {
       teamId: participant.teamId ?? null,
       teamName: participant.teamName ?? null,
+      teamColor: participant.teamColor ?? null,
     };
   }
   return lookup;
@@ -58,7 +61,7 @@ export function resolvePlayerTeam(
   const teamName =
     fromRegistry?.teamName ?? teamNameFromTeamId(teamId, lookup) ?? null;
 
-  return { teamId, teamName };
+  return { teamId, teamName, teamColor: fromRegistry?.teamColor ?? null };
 }
 
 export function enrichLeaderboardEntry(
@@ -101,11 +104,6 @@ export function teamDisplayKey(
   if (teamName) return teamName;
   return "unassigned";
 }
-
-export const DEFAULT_TEAM_SCORES = [
-  { id: "team-red", name: "Red", combinedScore: 0 },
-  { id: "team-blue", name: "Blue", combinedScore: 0 },
-] as const;
 
 export function hasPlayersMissingTeamRegistry(
   players: ConnectedPlayer[],

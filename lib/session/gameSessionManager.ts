@@ -19,6 +19,7 @@ import {
   hasPlayersMissingTeamRegistry,
   participantsToTeamLookup,
 } from "@/lib/session/playerTeams";
+import { createDefaultTeamScores, mergeParticipantTeamMetadata } from "@/lib/session/teamScores";
 import type { ConnectedPlayer } from "@/types/session-api";
 
 type RemoteGameStateEvent = SessionStateChangePayload & {
@@ -99,6 +100,7 @@ export const gameSessionManager = {
       sessionStore.setStatus("draft");
       sessionStore.clearPresenceState();
       sessionStore.setLeaderboard([]);
+      sessionStore.setTeamScores(createDefaultTeamScores());
       sessionStore.mergePlayerTeams({});
     } catch (error) {
       console.warn("Failed to create backend session", error);
@@ -203,6 +205,8 @@ export const gameSessionManager = {
     try {
       const participants = await participantService.fetchParticipants(sessionId);
       sessionStore.mergePlayerTeams(participantsToTeamLookup(participants));
+      const { teamScores } = sessionStore.getState();
+      sessionStore.setTeamScores(mergeParticipantTeamMetadata(participants, teamScores));
     } catch (error) {
       console.warn("Failed to refresh participant teams", error);
     }
