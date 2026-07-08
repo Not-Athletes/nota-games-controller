@@ -1,7 +1,15 @@
 import { create } from "zustand";
 import { enrichLeaderboard } from "@/lib/session/playerTeams";
 import type { PlayerTeamLookup } from "@/lib/session/playerTeams";
-import { createDefaultTeamScores, enrichLeaderboardTeamNames, type TeamScore } from "@/lib/session/teamScores";
+import type { RealtimeTeamScore } from "@/lib/api/dashboard/schemas";
+import {
+  createDefaultTeamScores,
+  deriveTeamScoresFromLeaderboard,
+  enrichLeaderboardTeamNames,
+  mergeParticipantTeamMetadata,
+  resolveTeamScores,
+  type TeamScore,
+} from "@/lib/session/teamScores";
 import type { LeaderboardEntry } from "@/types/leaderboard";
 import type { BackendGameState, ConnectedPlayer, SessionStatus } from "@/types/session-api";
 
@@ -22,7 +30,7 @@ type SessionStore = {
   setConnectedPlayers: (players: ConnectedPlayer[]) => void;
   removeConnectedPlayer: (playerId: string) => void;
   setLeaderboard: (entries: LeaderboardEntry[]) => void;
-  setLeaderboardFromRealtime: (entries: LeaderboardEntry[], teams: TeamScore[]) => void;
+  setLeaderboardFromRealtime: (entries: LeaderboardEntry[], incomingTeams: RealtimeTeamScore[]) => void;
   setTeamScores: (teams: TeamScore[]) => void;
   mergePlayerTeams: (teams: PlayerTeamLookup) => void;
   setRemoteGameState: (state: BackendGameState | null) => void;
@@ -81,25 +89,34 @@ export const useSessionStore = create<SessionStore>((set) => ({
   setLeaderboard: (leaderboard) =>
     set((state) => {
       const enriched = enrichLeaderboard(leaderboard ?? [], state.playerTeams, state.leaderboard);
+      const teamScores = deriveTeamScoresFromLeaderboard(enriched, state.teamScores);
       return {
-        leaderboard: enrichLeaderboardTeamNames(enriched, state.teamScores),
+        teamScores,
+        leaderboard: enrichLeaderboardTeamNames(enriched, teamScores),
       };
     }),
-  setLeaderboardFromRealtime: (leaderboard, teams) =>
+  setLeaderboardFromRealtime: (leaderboard, incomingTeams) =>
     set((state) => {
       const enriched = enrichLeaderboard(leaderboard ?? [], state.playerTeams, state.leaderboard);
+      const teamScores = resolveTeamScores(incomingTeams, enriched, state.teamScores);
       return {
-        teamScores: teams,
-        leaderboard: enrichLeaderboardTeamNames(enriched, teams),
+        teamScores,
+        leaderboard: enrichLeaderboardTeamNames(enriched, teamScores),
       };
     }),
   setTeamScores: (teamScores) => set({ teamScores }),
   mergePlayerTeams: (teams) =>
     set((state) => {
       const playerTeams = { ...state.playerTeams, ...teams };
+      const enriched = enrichLeaderboard(state.leaderboard, playerTeams);
+      const teamScores =
+        state.teamScores.some((team) => team.totalXp > 0)
+          ? state.teamScores
+          : deriveTeamScoresFromLeaderboard(enriched, state.teamScores);
       return {
         playerTeams,
-        leaderboard: enrichLeaderboard(state.leaderboard, playerTeams),
+        teamScores,
+        leaderboard: enrichLeaderboardTeamNames(enriched, teamScores),
       };
     }),
   setRemoteGameState: (remoteGameState) => set({ remoteGameState }),
@@ -127,8 +144,8 @@ export const sessionStore = {
     useSessionStore.getState().removeConnectedPlayer(playerId),
   setLeaderboard: (entries: LeaderboardEntry[]) =>
     useSessionStore.getState().setLeaderboard(entries),
-  setLeaderboardFromRealtime: (entries: LeaderboardEntry[], teams: TeamScore[]) =>
-    useSessionStore.getState().setLeaderboardFromRealtime(entries, teams),
+  setLeaderboardFromRealtime: (entries: LeaderboardEntry[], incomingTeams: RealtimeTeamScore[]) =>
+    useSessionStore.getState().setLeaderboardFromRealtime(entries, incomingTeams),
   setTeamScores: (teams: TeamScore[]) => useSessionStore.getState().setTeamScores(teams),
   mergePlayerTeams: (teams: PlayerTeamLookup) =>
     useSessionStore.getState().mergePlayerTeams(teams),

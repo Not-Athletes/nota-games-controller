@@ -19,13 +19,16 @@ import {
   type LeaderboardEntry,
 } from "@/lib/api/dashboard/schemas";
 import { gameSessionManager } from "@/lib/session/gameSessionManager";
-import { mergeRealtimeTeamScores, type TeamScore } from "@/lib/session/teamScores";
+import type { RealtimeTeamScore } from "@/lib/api/dashboard/schemas";
 import { sessionStore } from "@/stores/sessionStore";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import type { ZodType } from "zod";
 
 export type SessionRealtimeHandlers = {
-  onLeaderboardUpdate: (payload: { entries: LeaderboardEntry[]; teams: TeamScore[] }) => void;
+  onLeaderboardUpdate: (payload: {
+    entries: LeaderboardEntry[];
+    incomingTeams: RealtimeTeamScore[];
+  }) => void;
   onPresenceUpdate: (players: ConnectedPlayer[]) => void;
 };
 
@@ -87,7 +90,7 @@ export async function subscribeToSession(
       if (data) {
         handlers.onLeaderboardUpdate({
           entries: data.leaderboard.map(realtimeEntryToLeaderboardEntry),
-          teams: mergeRealtimeTeamScores(data.teams),
+          incomingTeams: data.teams,
         });
       }
     })

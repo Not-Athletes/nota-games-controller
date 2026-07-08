@@ -16,10 +16,15 @@ import { sessionStore } from "@/stores/sessionStore";
 import type { SessionConfig } from "@/types/session";
 import type { SessionStatePatch } from "@/lib/api/dashboard/schemas";
 import {
+  enrichLeaderboard,
   hasPlayersMissingTeamRegistry,
   participantsToTeamLookup,
 } from "@/lib/session/playerTeams";
-import { createDefaultTeamScores, mergeParticipantTeamMetadata } from "@/lib/session/teamScores";
+import {
+  createDefaultTeamScores,
+  deriveTeamScoresFromLeaderboard,
+  mergeParticipantTeamMetadata,
+} from "@/lib/session/teamScores";
 import type { ConnectedPlayer } from "@/types/session-api";
 
 type RemoteGameStateEvent = SessionStateChangePayload & {
@@ -205,8 +210,14 @@ export const gameSessionManager = {
     try {
       const participants = await participantService.fetchParticipants(sessionId);
       sessionStore.mergePlayerTeams(participantsToTeamLookup(participants));
-      const { teamScores } = sessionStore.getState();
-      sessionStore.setTeamScores(mergeParticipantTeamMetadata(participants, teamScores));
+      const { teamScores, leaderboard, playerTeams } = sessionStore.getState();
+      const withMetadata = mergeParticipantTeamMetadata(participants, teamScores);
+      const enriched = enrichLeaderboard(leaderboard, playerTeams);
+      const resolved =
+        withMetadata.some((team) => team.totalXp > 0)
+          ? withMetadata
+          : deriveTeamScoresFromLeaderboard(enriched, withMetadata);
+      sessionStore.setTeamScores(resolved);
     } catch (error) {
       console.warn("Failed to refresh participant teams", error);
     }

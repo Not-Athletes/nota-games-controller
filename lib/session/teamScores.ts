@@ -25,6 +25,27 @@ export function createDefaultTeamScores(): TeamScore[] {
   return DEFAULT_TEAM_SCORES.map((team) => ({ ...team }));
 }
 
+function matchesTeamSlot(name: string, slotId: string): boolean {
+  const normalized = name.trim().toLowerCase();
+  if (slotId === "team-red") {
+    return (
+      normalized === "red" ||
+      normalized === "team red" ||
+      normalized.endsWith("-red") ||
+      normalized.includes(" red")
+    );
+  }
+  if (slotId === "team-blue") {
+    return (
+      normalized === "blue" ||
+      normalized === "team blue" ||
+      normalized.endsWith("-blue") ||
+      normalized.includes(" blue")
+    );
+  }
+  return false;
+}
+
 function slotIndexForIncoming(team: RealtimeTeamScore, slots: TeamScore[]): number {
   const normalizedName = team.name.trim().toLowerCase();
   const byName = slots.findIndex((slot) => slot.name.toLowerCase() === normalizedName);
@@ -33,14 +54,50 @@ function slotIndexForIncoming(team: RealtimeTeamScore, slots: TeamScore[]): numb
   const byId = slots.findIndex((slot) => slot.teamId === team.teamId);
   if (byId >= 0) return byId;
 
-  if (normalizedName === "red") {
-    return slots.findIndex((slot) => slot.id === "team-red");
-  }
-  if (normalizedName === "blue") {
-    return slots.findIndex((slot) => slot.id === "team-blue");
-  }
+  const byFuzzy = slots.findIndex((slot) => matchesTeamSlot(team.name, slot.id));
+  if (byFuzzy >= 0) return byFuzzy;
 
   return -1;
+}
+
+/** Sum player XP into Red/Blue when Realtime does not send team totals. */
+export function deriveTeamScoresFromLeaderboard(
+  entries: LeaderboardEntry[],
+  base: TeamScore[] = createDefaultTeamScores()
+): TeamScore[] {
+  const slots = base.map((team) => ({ ...team, totalXp: 0 }));
+
+  for (const entry of entries) {
+    if (!entry.teamId && !entry.teamName) continue;
+
+    const index = slotIndexForIncoming(
+      {
+        teamId: entry.teamId ?? entry.teamName ?? "",
+        name: entry.teamName ?? entry.teamId ?? "",
+        color: "",
+        totalXp: 0,
+      },
+      slots
+    );
+
+    if (index < 0) continue;
+    slots[index].totalXp += entry.totalXp;
+  }
+
+  return slots;
+}
+
+/** Prefer Realtime team totals; otherwise roll up from player leaderboard rows. */
+export function resolveTeamScores(
+  incomingTeams: RealtimeTeamScore[],
+  entries: LeaderboardEntry[],
+  current: TeamScore[]
+): TeamScore[] {
+  if (incomingTeams.length > 0) {
+    return mergeRealtimeTeamScores(incomingTeams);
+  }
+
+  return deriveTeamScoresFromLeaderboard(entries, current);
 }
 
 /** Overlay Realtime normalized team totals onto the fixed Red/Blue slots. */

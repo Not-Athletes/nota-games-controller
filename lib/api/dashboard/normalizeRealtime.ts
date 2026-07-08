@@ -110,3 +110,52 @@ export function normalizePresencePayload(payload: unknown): unknown {
 export function normalizeDashboardPayload(payload: unknown): unknown {
   return normalizeKeysDeep(payload);
 }
+
+function coerceNumber(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+}
+
+/** Normalize one team row from Realtime or REST before Zod parsing. */
+export function normalizeTeamScoreRow(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object") return null;
+
+  const record = normalizeKeysDeep(value) as Record<string, unknown>;
+  const teamId = record.teamId ?? record.id;
+  const name = record.name ?? record.teamName;
+  const teamIdString = typeof teamId === "string" ? teamId.trim() : String(teamId ?? "").trim();
+  const nameString = typeof name === "string" ? name.trim() : String(name ?? "").trim();
+
+  if (!teamIdString || !nameString) return null;
+
+  return {
+    teamId: teamIdString,
+    name: nameString,
+    color: typeof record.color === "string" && record.color.trim() ? record.color.trim() : undefined,
+    totalXp: coerceNumber(record.totalXp ?? record.combinedScore ?? record.score),
+  };
+}
+
+export function normalizeLeaderboardUpdatePayload(payload: unknown): unknown {
+  const normalized = normalizeRealtimePayload(payload);
+  if (!normalized || typeof normalized !== "object") return normalized;
+
+  const record = { ...(normalized as Record<string, unknown>) };
+
+  const teamsCandidate = record.teams ?? record.teamScores ?? record.team_scores;
+  if (Array.isArray(teamsCandidate)) {
+    record.teams = teamsCandidate
+      .map(normalizeTeamScoreRow)
+      .filter((team): team is Record<string, unknown> => team !== null);
+  }
+
+  if (!record.leaderboard && Array.isArray(record.entries)) {
+    record.leaderboard = record.entries;
+  }
+
+  return record;
+}

@@ -2,8 +2,10 @@ import { z } from "zod";
 import {
   normalizeConnectedPlayer,
   normalizeDashboardPayload,
+  normalizeLeaderboardUpdatePayload,
   normalizePresencePayload,
   normalizeRealtimePayload,
+  normalizeTeamScoreRow,
 } from "@/lib/api/dashboard/normalizeRealtime";
 
 /** Matches the NOTA game engine dashboard + realtime contract (strict handoff). */
@@ -112,16 +114,19 @@ export const realtimeLeaderboardEntrySchema = z.object({
   playerId: z.string().min(1),
   playerName: z.string().min(1),
   teamId: z.string().nullable().optional().default(null),
-  totalXp: z.number(),
-  rank: z.number().int(),
+  totalXp: z.coerce.number(),
+  rank: z.coerce.number().int(),
 });
 
-export const realtimeTeamScoreSchema = z.object({
-  teamId: z.string().min(1),
-  name: z.string().min(1),
-  color: z.string().min(1),
-  totalXp: z.number(),
-});
+export const realtimeTeamScoreSchema = z.preprocess(
+  (value) => normalizeTeamScoreRow(value) ?? value,
+  z.object({
+    teamId: z.string().min(1),
+    name: z.string().min(1),
+    color: z.string().optional().default("#888888"),
+    totalXp: z.coerce.number(),
+  })
+);
 
 export const timestampSchema = z.union([z.number(), z.string()]).transform((value) => {
   if (typeof value === "number") return value;
@@ -155,7 +160,7 @@ export const sessionStateChangePayloadSchema = z.preprocess(
 );
 
 export const leaderboardUpdatePayloadSchema = z.preprocess(
-  normalizeRealtimePayload,
+  normalizeLeaderboardUpdatePayload,
   z.object({
     sessionId: z.string().min(1),
     updatedAt: timestampSchema.optional().default(0),
