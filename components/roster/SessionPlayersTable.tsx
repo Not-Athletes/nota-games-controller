@@ -103,9 +103,6 @@ export function SessionPlayersTable({ compact = false }: { compact?: boolean }) 
         </div>
       )}
 
-      {sessionEnded ? (
-        <p className="mt-3 text-sm text-zinc-500">Session ended — player list is read-only.</p>
-      ) : null}
       {error ? <p className="mt-3 text-sm text-red-500">{error}</p> : null}
     </section>
   );

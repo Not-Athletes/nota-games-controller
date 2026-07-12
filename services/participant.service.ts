@@ -73,7 +73,23 @@ export const participantService = {
     }, participantRowSchema);
   },
 
+  /**
+   * Instructor kick — uses the authenticated dashboard route so the backend can
+   * notify the player's sensor. Falls back to the mobile self-leave route only
+   * when the dashboard endpoint is unavailable on older backends.
+   */
   async removeParticipant(sessionId: string, playerId: string) {
+    try {
+      await apiRequest(`/dashboard/sessions/${sessionId}/participants/${playerId}`, {
+        method: "DELETE",
+      });
+      return;
+    } catch (error) {
+      if (!(error instanceof ApiError) || error.status !== 404) {
+        throw error;
+      }
+    }
+
     await apiRequest(`/sessions/${sessionId}/leave`, {
       method: "DELETE",
       body: JSON.stringify({ playerId }),
